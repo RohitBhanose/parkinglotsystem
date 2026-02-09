@@ -23,7 +23,7 @@ int main() {
         printf("Enter your choice: ");
         scanf("%d", &choice);
 
-        /* ================= VEHICLE ENTRY ================= */
+        //  VEHICLE ENTRY 
         if (choice == 1) {
             if (count >= MAX) {
                 printf("Parking Full!\n");
@@ -49,7 +49,7 @@ int main() {
             count++;
         }
 
-        /* ================= VEHICLE EXIT ================= */
+        // VEHICLE EXIT  
         else if (choice == 2) {
             char exitPlate[15];
             int exitHour, exitMinute;
@@ -84,7 +84,7 @@ int main() {
 
                     int baseFare = totalHours * baseRate;
 
-                    /* ===== Peak Hour Logic (6 PM - 9 PM) ===== */
+                    // Peak Hour Logic (6-9 PM)
                     int peakStart = 18 * 60;
                     int peakEnd = 21 * 60;
 
@@ -118,7 +118,7 @@ int main() {
                 printf("Vehicle not found or already exited!\n");
         }
 
-        /* ================= VIEW ACTIVE ================= */
+        // VIEW ACTIVE 
         else if (choice == 3) {
             int any = 0;
             printf("\nActive Parked Vehicles:\n");
@@ -140,7 +140,7 @@ int main() {
                 printf("No vehicles currently parked.\n");
         }
 
-        /* ================= EXIT PROGRAM ================= */
+        //  EXIT PROGRAM 
         else if (choice == 4) {
             printf("System Shutdown. Thank you!\n");
             break;
