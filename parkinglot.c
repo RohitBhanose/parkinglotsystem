@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <string.h>
 
-int main() {
+int main()
+{
     int MAX = 50;
 
     int token[50];
     char numberPlate[50][15];
-    int vehicleType[50];      // 1 = Two wheeler, 2 = Four wheeler
+    int vehicleType[50]; // 1 = Two wheeler, 2 = Four wheeler
     int entryHour[50], entryMinute[50];
     int isActive[50];
 
@@ -14,7 +15,8 @@ int main() {
     int nextToken = 1;
     int choice;
 
-    while (1) {
+    while (1)
+    {
         printf("\n====== SMART PARKING SYSTEM ======\n");
         printf("1. Vehicle Entry\n");
         printf("2. Vehicle Exit\n");
@@ -23,9 +25,11 @@ int main() {
         printf("Enter your choice: ");
         scanf("%d", &choice);
 
-        //  VEHICLE ENTRY 
-        if (choice == 1) {
-            if (count >= MAX) {
+        //  VEHICLE ENTRY
+        if (choice == 1)
+        {
+            if (count >= MAX)
+            {
                 printf("Parking Full!\n");
                 continue;
             }
@@ -33,7 +37,11 @@ int main() {
             token[count] = nextToken++;
 
             printf("Enter Number Plate: ");
-            scanf("%s", numberPlate[count]);
+            getchar(); // Clear buffer
+            fgets(numberPlate[count], 15, stdin);
+
+            // Remove the "Enter" key (\n) from the end of the plate string for clean printing
+            numberPlate[count][strcspn(numberPlate[count], "\n")] = 0;
 
             printf("Select Vehicle Type (1 = Two-wheeler, 2 = Four-wheeler): ");
             scanf("%d", &vehicleType[count]);
@@ -49,17 +57,21 @@ int main() {
             count++;
         }
 
-        // VEHICLE EXIT  
-        else if (choice == 2) {
-            char exitPlate[15];
+        // VEHICLE EXIT (Modified to use Token)
+        else if (choice == 2)
+        {
+            int exitToken; // Changed from char array to int
             int exitHour, exitMinute;
             int found = 0;
 
-            printf("Enter Number Plate at Exit: ");
-            scanf("%s", exitPlate);
+            printf("Enter Token Number at Exit: ");
+            scanf("%d", &exitToken); // Read integer
 
-            for (int i = 0; i < count; i++) {
-                if (strcmp(numberPlate[i], exitPlate) == 0 && isActive[i] == 1) {
+            for (int i = 0; i < count; i++)
+            {
+                // Compare integer tokens instead of strings
+                if (token[i] == exitToken && isActive[i] == 1)
+                {
                     found = 1;
 
                     printf("Enter Exit Time (HH MM): ");
@@ -68,7 +80,8 @@ int main() {
                     int entryTime = entryHour[i] * 60 + entryMinute[i];
                     int exitTime = exitHour * 60 + exitMinute;
 
-                    if (exitTime <= entryTime) {
+                    if (exitTime <= entryTime)
+                    {
                         printf("Invalid exit time!\n");
                         break;
                     }
@@ -78,9 +91,9 @@ int main() {
 
                     int baseRate;
                     if (vehicleType[i] == 1)
-                        baseRate = 25;   // Two-wheeler
+                        baseRate = 25; // Two-wheeler
                     else
-                        baseRate = 40;   // Four-wheeler
+                        baseRate = 40; // Four-wheeler
 
                     int baseFare = totalHours * baseRate;
 
@@ -105,6 +118,8 @@ int main() {
                     printf("Number Plate   : %s\n", numberPlate[i]);
                     printf("Vehicle Type   : %s\n",
                            (vehicleType[i] == 1) ? "Two-wheeler" : "Four-wheeler");
+                    printf("Parked from %02d:%02d to %02d:%02d\n",
+                           entryHour[i], entryMinute[i], exitHour, exitMinute);
                     printf("Total Hours    : %d\n", totalHours);
                     printf("Peak Hours     : %d\n", peakHours);
                     printf("Amount Payable : Rs %d\n", totalFare);
@@ -115,19 +130,22 @@ int main() {
             }
 
             if (!found)
-                printf("Vehicle not found or already exited!\n");
+                printf("Token not found or vehicle already exited!\n");
         }
 
-        // VIEW ACTIVE 
-        else if (choice == 3) {
+        // VIEW ACTIVE
+        else if (choice == 3)
+        {
             int any = 0;
             printf("\nActive Parked Vehicles:\n");
             printf("Token\tPlate\t\tType\tEntry\n");
 
-            for (int i = 0; i < count; i++) {
-                if (isActive[i] == 1) {
+            for (int i = 0; i < count; i++)
+            {
+                if (isActive[i] == 1)
+                {
                     any = 1;
-                    printf("%d\t%s\t%s\t%02d:%02d\n",
+                    printf("%d\t%s\t\t%s\t%02d:%02d\n",
                            token[i],
                            numberPlate[i],
                            (vehicleType[i] == 1) ? "2W" : "4W",
@@ -140,13 +158,15 @@ int main() {
                 printf("No vehicles currently parked.\n");
         }
 
-        //  EXIT PROGRAM 
-        else if (choice == 4) {
+        //  EXIT PROGRAM
+        else if (choice == 4)
+        {
             printf("System Shutdown. Thank you!\n");
             break;
         }
 
-        else {
+        else
+        {
             printf("Invalid choice! Try again.\n");
         }
     }
