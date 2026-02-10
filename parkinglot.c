@@ -40,7 +40,7 @@ int main()
             getchar(); // Clear buffer
             fgets(numberPlate[count], 15, stdin);
 
-            // Remove the "Enter" key (\n) from the end of the plate string for clean printing
+        
             numberPlate[count][strcspn(numberPlate[count], "\n")] = 0;
 
             printf("Select Vehicle Type (1 = Two-wheeler, 2 = Four-wheeler): ");
@@ -57,7 +57,7 @@ int main()
             count++;
         }
 
-        // VEHICLE EXIT (Modified to use Token)
+        // VEHICLE EXIT
         else if (choice == 2)
         {
             int exitToken; // Changed from char array to int
@@ -69,7 +69,7 @@ int main()
 
             for (int i = 0; i < count; i++)
             {
-                // Compare integer tokens instead of strings
+            
                 if (token[i] == exitToken && isActive[i] == 1)
                 {
                     found = 1;
