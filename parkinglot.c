@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
     }
 
     // ---------------- DURATION ----------------
-    int duration = exit - entry;  // seconds
+    int duration = exit - entry; // seconds
 
     // Demo logic: 1 sec = 1 unit (for quick demo)
     int billable_time = duration;
@@ -40,11 +40,11 @@ int main(int argc, char *argv[])
     // Weekend OR rush hours (6–10 PM)
     if (weekday == 0 || weekday == 6 || (hour >= 18 && hour < 22))
     {
-        rate = 1.0;   // ₹1 per unit
+        rate = 1.0; // ₹1 per unit
     }
     else
     {
-        rate = 0.66;  // ₹0.66 per unit
+        rate = 0.66; // ₹0.66 per unit
     }
 
     // ---------------- BILL ----------------
