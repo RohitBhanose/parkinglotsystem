@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"surface-container-highest":"#323538","secondary":"#b9c9d3","on-primary-fixed-variant":"#604100","on-background":"#e1e2e6","on-primary-container":"#5e4000","primary-fixed-dim":"#fabc4d","on-tertiary":"#003258","error-container":"#93000a","surface-dim":"#111417","surface-container-lowest":"#0b0e11","secondary-container":"#3a4951","on-surface":"#e1e2e6","primary-container":"#e5a93c","on-primary-fixed":"#281900","on-error":"#690005","tertiary":"#afd2ff","background":"#111417","error":"#ffb4ab","surface-container-low":"#191c1f","on-tertiary-container":"#00487b","on-error-container":"#ffdad6","on-secondary":"#24323a","surface-tint":"#fabc4d","tertiary-fixed":"#d1e4ff","primary-fixed":"#ffdead","outline-variant":"#504535","surface":"#111417","surface-container":"#1d2023","on-secondary-fixed-variant":"#3a4951","surface-container-high":"#272a2d","on-tertiary-fixed-variant":"#00497d","secondary-fixed":"#d5e5f0","primary":"#ffc665","on-secondary-container":"#a8b7c2","surface-bright":"#37393d","inverse-on-surface":"#2e3134","on-surface-variant":"#d4c4b0","surface-variant":"#323538","outline":"#9d8f7c","tertiary-container":"#79b8fe","inverse-primary":"#7e5700","secondary-fixed-dim":"#b9c9d3","tertiary-fixed-dim":"#9ecaff","on-tertiary-fixed":"#001d36","inverse-surface":"#e1e2e6","on-secondary-fixed":"#0f1d25","on-primary":"#432c00"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"space-xl":"2rem","space-sm":"0.5rem","gutter-lg":"1.5rem","space-xs":"0.25rem","margin":"1.5rem","space-md":"0.75rem","space-lg":"1.25rem","gutter":"1rem","margin-sm":"1rem"},"fontFamily":{"body-md":["Inter"],"headline-lg":["Space Grotesk"],"title-sm":["Space Grotesk"],"body-lg":["Inter"],"body-sm":["Inter"],"label-bay":["Space Grotesk"],"label-code":["Space Grotesk"],"label-table-header":["Space Grotesk"],"headline-md":["Space Grotesk"],"headline-xl":["Space Grotesk"]},"fontSize":{"body-md":["13px",{"lineHeight":"20px","fontWeight":"400"}],"headline-lg":["24px",{"lineHeight":"32px","letterSpacing":"-0.01em","fontWeight":"600"}],"title-sm":["16px",{"lineHeight":"24px","fontWeight":"600"}],"body-lg":["15px",{"lineHeight":"24px","fontWeight":"400"}],"body-sm":["12px",{"lineHeight":"16px","fontWeight":"400"}],"label-bay":["18px",{"lineHeight":"20px","letterSpacing":"0.02em","fontWeight":"700"}],"label-code":["13px",{"lineHeight":"16px","letterSpacing":"0.04em","fontWeight":"700"}],"label-table-header":["11px",{"lineHeight":"14px","letterSpacing":"0.08em","fontWeight":"600"}],"headline-md":["20px",{"lineHeight":"28px","fontWeight":"600"}],"headline-xl":["32px",{"lineHeight":"40px","letterSpacing":"-0.02em","fontWeight":"700"}]}}}}</script></head><body class="bg-surface font-body-md text-body-md text-on-surface selection:bg-primary-container selection:text-on-primary-container min-h-screen flex flex-col"><header class="fixed top-0 w-full z-50 bg-surface-container-lowest/95 backdrop-blur-md border-b border-surface-container-highest"><div class="h-16 w-full px-gutter-lg flex items-center justify-between"><div class="flex items-center gap-space-md"><img alt="Brand logo. - Primary color: #e5a93c
+- Font: spaceGrotesk
+- Mode: dark
+- Roundness: rounded-lg
+" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UIeNuQJ1usBJfvQ1wciGCySYNChetH-vDFsf1QmFnRwjLKo1G8kF_wOZFRGaTn_uS7XnodSe5-f1QmGJ3JCQExks_FEI0HQJmqnWqx0vtcpq4ao9qYupwe-Y4nNMg19aKvzUh12Par3Tx9LjBbHHiVydM9XPK8Akt1RK5ugEdgGHL5pyyK8Q2wTVD1o0q08K6qmstreZBSpUrpnjZBQTfqT-EAFYnaTIXuQiY4so0T3_NiRXWomcRf8w"/><span class="font-title-sm text-title-sm uppercase tracking-wider text-on-surface">PARK-DBMS</span></div><nav class="flex items-center gap-space-xs bg-surface-container-lowest p-space-xs rounded border border-surface-container-highest" data-active-classes="bg-surface-container-high text-primary border border-outline-variant font-title-sm"><a class="font-title-sm text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container px-space-md py-space-xs rounded transition-colors" data-path="dashboard" href="#">Dashboard</a><a class="font-title-sm text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container px-space-md py-space-xs rounded transition-colors" data-path="parking" href="#">Parking</a><a aria-current="page" class="px-space-md py-space-xs rounded transition-colors bg-surface-container-high text-primary border border-outline-variant font-title-sm" data-path="map" href="#">Map</a><a class="font-title-sm text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container px-space-md py-space-xs rounded transition-colors" data-path="records" href="#">Records</a></nav><div class="flex items-center gap-space-md"><div class="flex items-center gap-space-xs bg-surface-container px-space-md py-space-xs rounded border border-surface-container-highest"><span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span><span class="font-label-code text-label-code text-primary uppercase">SYSTEM ONLINE // LOT 01</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 bg-surface flex-1"><div class="flex flex-col w-full px-gutter-lg py-space-lg space-y-space-lg">
+<!-- Top Telemetry & Controls Toolbar -->
+<div class="w-full bg-surface-container-low rounded-xl p-space-md flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-space-md">
+<!-- Left: Subsystem status and slot summary pills -->
+<div class="flex flex-wrap items-center gap-space-md">
+<div class="flex items-center gap-space-xs bg-surface-container px-space-md py-space-xs rounded">
+<span class="font-label-code text-label-code text-secondary uppercase tracking-wider">ZONE: ENG-CAMPUS-01</span>
+</div>
+<!-- Quick Legend & Status Counters -->
+<div class="flex items-center gap-space-sm bg-surface-container-lowest px-space-md py-space-xs rounded">
+<button class="filter-btn text-primary font-label-code text-label-code px-space-xs py-0.5 rounded bg-surface-container-high transition-colors" id="filterAll">
+          ALL: 50
+        </button>
+<span class="text-surface-container-highest">/</span>
+<button class="filter-btn flex items-center gap-1.5 text-tertiary hover:text-tertiary-fixed font-label-code text-label-code px-space-xs py-0.5 rounded transition-colors" id="filterVacant">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+          VACANT: <span id="vacantCount">14</span>
+</button>
+<span class="text-surface-container-highest">/</span>
+<button class="filter-btn flex items-center gap-1.5 text-on-surface-variant hover:text-on-surface font-label-code text-label-code px-space-xs py-0.5 rounded transition-colors" id="filterOccupied">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+          OCCUPIED: <span id="occupiedCount">36</span>
+</button>
+</div>
+<!-- Live telemetry mini sensor rate -->
+<div class="hidden sm:flex items-center gap-space-xs text-on-surface-variant font-label-table-header text-label-table-header uppercase">
+<span class="material-symbols-outlined text-[14px] text-primary">sensors</span>
+<span>ULTRASONIC ARRAY: 100% HEALTH</span>
+</div>
+</div>
+<!-- Right: Quick search by Slot ID or Plate -->
+<div class="flex items-center gap-space-sm min-w-[280px] lg:w-96">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-space-sm top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
+<input class="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md pl-9 pr-space-md py-space-xs rounded focus:outline-none focus:bg-surface-container transition-all placeholder:text-outline" id="slotSearchInput" placeholder="Search Slot ID or Plate Number (e.g. A-01, KA-05...)" type="text"/>
+</div>
+<button class="bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high px-space-sm py-space-xs rounded font-label-code text-label-code uppercase transition-colors" id="clearSearchBtn" title="Reset Filters">
+        CLR
+      </button>
+</div>
+</div>
+<!-- Primary Workspace: Bay Layout Visualizer & Detail Inspector -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-space-lg items-start">
+<!-- 2D Architectural Schematic Canvas (8 or 9 cols desktop) -->
+<div class="xl:col-span-8 flex flex-col space-y-space-lg bg-surface-container-lowest p-space-lg rounded-xl">
+<!-- Facility Schematic Header Banner -->
+<div class="flex items-center justify-between bg-surface-container-low px-space-md py-space-xs rounded">
+<div class="flex items-center gap-space-md">
+<span class="font-headline-md text-headline-md text-primary tracking-tight">NORTH LOT // SUB-DECK A</span>
+<span class="font-label-code text-label-code text-secondary bg-surface-container px-space-xs rounded">GRID 2D // NO GPS REQ.</span>
+</div>
+<div class="flex items-center gap-space-xs text-on-surface-variant font-label-table-header text-label-table-header">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span>
+<span>REALTIME DB SYNC</span>
+</div>
+</div>
+<!-- SECTION A (16 Slots: 2 rows of 8 stalls facing central lane) -->
+<div class="section-block flex flex-col space-y-space-sm bg-surface-container-low/70 p-space-md rounded">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-md text-headline-md text-on-surface font-semibold">SECTION A</span>
+<span class="font-label-code text-label-code text-on-surface-variant uppercase">// COMPACT &amp; SEDAN</span>
+</div>
+<span class="font-label-table-header text-label-table-header text-primary uppercase">LANES A1 - A16</span>
+</div>
+<!-- Upper Stall Row -->
+<div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-space-xs" id="row-a-top">
+<!-- A-01 to A-08 dynamically rendered or structured -->
+</div>
+<!-- Driving Aisle Strip -->
+<div class="h-8 bg-surface-container flex items-center justify-between px-space-md rounded">
+<span class="font-label-table-header text-label-table-header text-outline tracking-widest uppercase flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">arrow_forward</span> ONE WAY • 10 KM/H LIMIT
+          </span>
+<span class="font-label-table-header text-label-table-header text-outline tracking-widest uppercase hidden md:inline">
+            AISLE 01-NORTH
+          </span>
+<span class="font-label-table-header text-label-table-header text-outline tracking-widest uppercase flex items-center gap-1">
+            EXIT RUNWAY <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</span>
+</div>
+<!-- Lower Stall Row -->
+<div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-space-xs" id="row-a-bottom">
+<!-- A-09 to A-16 -->
+</div>
+</div>
+<!-- SECTION B (18 Slots: 2 rows of 9 stalls) -->
+<div class="section-block flex flex-col space-y-space-sm bg-surface-container-low/70 p-space-md rounded">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-md text-headline-md text-on-surface font-semibold">SECTION B</span>
+<span class="font-label-code text-label-code text-on-surface-variant uppercase">// GENERAL FACULTY &amp; STAFF</span>
+</div>
+<span class="font-label-table-header text-label-table-header text-primary uppercase">LANES B01 - B18</span>
+</div>
+<!-- Upper Stall Row -->
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-9 gap-space-xs" id="row-b-top">
+<!-- B-01 to B-09 -->
+</div>
+<!-- Driving Aisle Strip -->
+<div class="h-8 bg-surface-container flex items-center justify-between px-space-md rounded">
+<span class="font-label-table-header text-label-table-header text-outline tracking-widest uppercase flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">arrow_forward</span> PASSENGER CIRCULATION AISLE 02
+          </span>
+<span class="font-label-table-header text-label-table-header text-tertiary tracking-widest uppercase flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">ev_station</span> EV CHARGER CORRIDOR
+          </span>
+</div>
+<!-- Lower Stall Row -->
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-9 gap-space-xs" id="row-b-bottom">
+<!-- B-10 to B-18 -->
+</div>
+</div>
+<!-- SECTION C (16 Slots: 2 rows of 8 stalls) -->
+<div class="section-block flex flex-col space-y-space-sm bg-surface-container-low/70 p-space-md rounded">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-md text-headline-md text-on-surface font-semibold">SECTION C</span>
+<span class="font-label-code text-label-code text-on-surface-variant uppercase">// VISITOR &amp; DAILY PASS</span>
+</div>
+<span class="font-label-table-header text-label-table-header text-primary uppercase">LANES C01 - C16</span>
+</div>
+<!-- Upper Stall Row -->
+<div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-space-xs" id="row-c-top">
+<!-- C-01 to C-08 -->
+</div>
+<!-- Driving Aisle Strip -->
+<div class="h-8 bg-surface-container flex items-center justify-between px-space-md rounded">
+<span class="font-label-table-header text-label-table-header text-outline tracking-widest uppercase flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">arrow_back</span> ONE WAY • SPEED BUMPS ARMED
+          </span>
+<span class="font-label-table-header text-label-table-header text-outline tracking-widest uppercase flex items-center gap-1">
+            SOUTH BARRIER GATE <span class="material-symbols-outlined text-[14px]">save_as</span>
+</span>
+</div>
+<!-- Lower Stall Row -->
+<div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-space-xs" id="row-c-bottom">
+<!-- C-09 to C-16 -->
+</div>
+</div>
+<!-- Footer Meta & ANPR Camera Feed Callout -->
+<div class="flex flex-col md:flex-row items-center justify-between gap-space-md pt-space-xs text-on-surface-variant font-label-table-header text-label-table-header">
+<div class="flex items-center gap-space-md">
+<span class="flex items-center gap-1">
+<span class="w-2.5 h-2.5 rounded-sm bg-surface-container-high"></span> STALL FRAME: REINFORCED CONCRETE
+          </span>
+<span class="flex items-center gap-1">
+<span class="w-2.5 h-2.5 rounded-sm bg-primary/20"></span> VEHICLE PRESENT
+          </span>
+<span class="flex items-center gap-1">
+<span class="w-2.5 h-2.5 rounded-sm bg-tertiary/20"></span> READY FOR ASSIGNMENT
+          </span>
+</div>
+<div class="font-label-code text-label-code text-secondary">
+          SCHEMA: university_parking.dbo.slots // AUTO-REFRESH 3s
+        </div>
+</div>
+</div>
+<!-- Right: Slot Detail Inspector Drawer / Sidebar (4 cols desktop) -->
+<div class="xl:col-span-4 flex flex-col space-y-space-md">
+<!-- Primary Detail Container -->
+<div class="bg-surface-container-low rounded-xl p-space-lg flex flex-col space-y-space-lg sticky top-20" id="inspectorPanel">
+<!-- Drawer Header -->
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-table-header text-label-table-header text-primary uppercase tracking-widest">SLOT INSPECTION MATRIX</span>
+<h2 class="font-headline-xl text-headline-xl text-on-surface tracking-tight mt-0.5" id="inspectedSlotId">SLOT B-07</h2>
+<div class="font-body-sm text-body-sm text-on-surface-variant" id="inspectedSectionText">SECTION B • LEVEL 01 GENERAL</div>
+</div>
+<div class="px-space-sm py-1 rounded bg-primary/10 text-primary font-label-code text-label-code uppercase tracking-wider" id="inspectedStatusBadge">
+            OCCUPIED
+          </div>
+</div>
+<!-- Viewfinder Snippet (ANPR verification thumbnail) -->
+<div class="relative w-full h-36 bg-surface-container-lowest rounded overflow-hidden flex flex-col justify-between p-space-sm">
+<div class="absolute inset-0 bg-cover bg-center opacity-30" data-alt="Black and white top-angle monochrome security camera viewfinder footage capturing a parked passenger car in a dimly lit concrete university garage bay with yellow floor paint stripes and numeric markings." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBnHqbvKQ7ovvEyDc4cNosis323weoKx_65LRJa_jwSYNq9K7Dv63so8dTpiJlOroyAKBfTcmFBpuiMEZVEP8W4k6rmJ1MEVgc8ZkwHsdG0RPuwiZiK_QvIymSRgDf6SwKGPuqVhkkDiakl8Ho3VFXevU-6paCeANpLkzBGzrbKhEehZKLyCJ8Td4Zz0pKSCdsdTuzsLLK-SgXG5PNj4romxhkQNCqH7qLp681yxDzC8hrQxNlarCdh')"></div>
+<!-- Viewfinder HUD Overlays -->
+<div class="relative z-10 flex items-center justify-between font-label-code text-label-code text-primary uppercase">
+<span class="bg-surface-container-lowest/80 px-1.5 py-0.5 rounded">CAM-02 // BAY-B07</span>
+<span class="text-tertiary flex items-center gap-1 bg-surface-container-lowest/80 px-1.5 py-0.5 rounded">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span> OCR 99.1%
+            </span>
+</div>
+<div class="relative z-10 flex items-end justify-between">
+<div class="bg-surface-container-lowest/90 px-space-sm py-1 rounded">
+<span class="font-label-table-header text-label-table-header text-on-surface-variant block uppercase">DETECTED PLATE</span>
+<span class="font-headline-md text-headline-md text-primary font-bold tracking-wider" id="inspectedPlatePreview">KA-05-MJ-4021</span>
+</div>
+<span class="font-label-code text-label-code text-on-surface-variant bg-surface-container-lowest/80 px-1 rounded">
+              ULTRASONIC: 1.42m
+            </span>
+</div>
+</div>
+<!-- Relational Entity Data Table -->
+<div class="bg-surface-container-lowest rounded p-space-md space-y-space-sm">
+<div class="flex items-center justify-between pb-space-xs">
+<span class="font-label-table-header text-label-table-header text-on-surface-variant uppercase">ATTRIBUTES</span>
+<span class="font-label-table-header text-label-table-header text-on-surface-variant uppercase">RELATIONAL VALUES</span>
+</div>
+<!-- Vehicle Registration -->
+<div class="flex items-center justify-between font-body-md text-body-md py-1">
+<span class="text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-secondary">directions_car</span> Vehicle Plate:
+            </span>
+<span class="font-headline-md text-title-sm text-primary font-bold" id="inspectedPlate">KA-05-MJ-4021</span>
+</div>
+<!-- Driver ID / Type -->
+<div class="flex items-center justify-between font-body-md text-body-md py-1">
+<span class="text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-secondary">badge</span> Permittee:
+            </span>
+<span class="font-body-md text-body-md text-on-surface" id="inspectedPermit">Faculty ID #88412</span>
+</div>
+<!-- Entry Timestamp -->
+<div class="flex items-center justify-between font-body-md text-body-md py-1">
+<span class="text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-secondary">login</span> Entry Time:
+            </span>
+<span class="font-label-code text-label-code text-on-surface" id="inspectedEntryTime">Today, 08:42 AM</span>
+</div>
+<!-- Elapsed Duration -->
+<div class="flex items-center justify-between font-body-md text-body-md py-1">
+<span class="text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-secondary">timer</span> Elapsed Time:
+            </span>
+<span class="font-label-code text-label-code text-on-surface font-bold" id="inspectedDuration">1h 45m</span>
+</div>
+<!-- Billing Rate / Total -->
+<div class="flex items-center justify-between font-body-md text-body-md py-1">
+<span class="text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-secondary">payments</span> Accrued Fare:
+            </span>
+<span class="font-headline-md text-title-sm text-primary font-bold" id="inspectedFare">$6.00</span>
+</div>
+<!-- Hardware Node ID -->
+<div class="flex items-center justify-between font-body-md text-body-md py-1">
+<span class="text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-secondary">router</span> Sensor Node:
+            </span>
+<span class="font-label-code text-label-code text-secondary font-mono" id="inspectedSensor">NODE_B07_US_V2</span>
+</div>
+</div>
+<!-- Quick Database Modification Controls -->
+<div class="flex flex-col space-y-space-sm pt-space-xs">
+<span class="font-label-table-header text-label-table-header text-on-surface-variant uppercase">OPERATOR ACTIONS (MANUAL OVERRIDE)</span>
+<button class="w-full bg-primary hover:bg-primary-container text-on-primary font-title-sm text-title-sm py-space-sm px-space-md rounded transition-colors flex items-center justify-center gap-space-xs uppercase tracking-wider font-semibold" id="btnReleaseSlot">
+<span class="material-symbols-outlined text-[20px]">eject</span>
+            Manually Release Slot
+          </button>
+<div class="grid grid-cols-2 gap-space-sm">
+<button class="bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-title-sm text-body-md py-space-xs px-space-sm rounded transition-colors flex items-center justify-center gap-1" id="btnMarkMaint">
+<span class="material-symbols-outlined text-[16px] text-outline">build</span>
+              Maintenance
+            </button>
+<button class="bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-title-sm text-body-md py-space-xs px-space-sm rounded transition-colors flex items-center justify-center gap-1" id="btnSyncSensor">
+<span class="material-symbols-outlined text-[16px] text-secondary">sync</span>
+              Poll Hardware
+            </button>
+</div>
+</div>
+<!-- Operator Audit Log Preview -->
+<div class="bg-surface-container p-space-sm rounded font-body-sm text-body-sm text-on-surface-variant">
+<span class="font-label-code text-label-code text-secondary uppercase block mb-1">TRANSACTION INTEGRITY:</span>
+<span>Last DB Commit: <span class="font-mono text-on-surface">TX_904128_B07</span> verified by SQL trigger `trg_slot_occupancy_update`.</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Interactive Client-side Script for Live Filtering, Slot Clicks & State Changes -->
+<script>
+  // Complete Dataset for 50 parking bays across Section A, B, and C
+  const parkingData = [
+    // SECTION A (16 slots: A-01 to A-16)
+    { id: 'A-01', section: 'A', status: 'occupied', plate: 'KA-01-AB-1011', duration: '2h 10m', fare: '$8.00', entry: '08:15 AM', permit: 'Faculty ID #1002' },
+    { id: 'A-02', section: 'A', status: 'vacant', plate: null, duration: null, fare: '$0.00', entry: null, permit: null },
+    { id: 'A-03', section: 'A', status: 'occupied', plate: 'MH-12-PQ-9981', duration: '45m', fare: '$3.00', entry: '09:40 AM', permit: 'Student #40918' },
+    { id: 'A-04', section: 'A', status: 'occupied', plate: 'DL-04-CA-3321', duration: '3h 20m', fare: '$12.00', entry: '07:05 AM', permit: 'Staff #2201' },
+    { id: 'A-05', section: 'A', status: 'vacant', plate: null, duration: null, fare: '$0.00', entry: null, permit: null },
+    { id: 'A-06', section: 'A', status: 'occupied', plate: 'KA-03-HA-8842', duration: '1h 05m', fare: '$4.00', entry: '09:20 AM', permit: 'Visitor #994' },
+    { id: 'A-07', section: 'A', status: 'occupied', plate: 'KA-05-MK-1120', duration: '5h 12m', fare: '$18.00', entry: '05:13 AM', permit: 'Faculty ID #1105' },
+    { id: 'A-08', section: 'A', status: 'vacant', plate: null, duration: null, fare: '$0.00', entry: null, permit: null },
+    { id: 'A-09', section: 'A', status: 'occupied', plate: 'HR-26-DK-7712', duration: '0h 30m', fare: '$2.00', entry: '09:55 AM', permit: 'Visitor #1002' },
+    { id: 'A-10', section: 'A', status: 'occupied', plate: 'TN-09-BN-4432', duration: '2h 45m', fare: '$10.00', entry: '07:40 AM', permit: 'Student #5512' },
+    { id: 'A-11', section: 'A', status: 'vacant', plate: null, duration: null, fare: '$0.00', entry: null, permit: null },
+    { id: 'A-12', section: 'A', status: 'occupied', plate: 'KA-04-EG-6719', duration: '1h 15m', fare: '$5.00', entry: '09:10 AM', permit: 'Faculty ID #3319' },
+    { id: 'A-13', section: 'A', status: 'occupied', plate: 'KA-51-MD-9080', duration: '4h 00m', fare: '$15.00', entry: '06:25 AM', permit: 'Staff #1184' },
+    { id: 'A-14', section: 'A', status: 'occupied', plate: 'WB-02-TR-6541', duration: '1h 50m', fare: '$7.00', entry: '08:35 AM', permit: 'Faculty ID #9921' },
+    { id: 'A-15', section: 'A', status: 'vacant', plate: null, duration: null, fare: '$0.00', entry: null, permit: null },
+    { id: 'A-16', section: 'A', status: 'occupied', plate: 'KA-01-EE-4509', duration: '0h 40m', fare: '$3.00', entry: '09:45 AM', permit: 'Visitor #1040' },
+
+    // SECTION B (18 slots: B-01 to B-18)
+    { id: 'B-01', section: 'B', status: 'occupied', plate: 'KA-02-LL-1288', duration: '3h 10m', fare: '$11.00', entry: '07:15 AM', permit: 'Faculty ID #4490' },
+    { id: 'B-02', section: 'B', status: 'occupied', plate: 'KA-05-AB-7761', duration: '1h 22m', fare: '$5.00', entry: '09:03 AM', permit: 'Student #8122' },
+    { id: 'B-03', section: 'B', status: 'vacant', plate: null, duration: null, fare: '$0.00', entry: null, permit: null },
+    { id: 'B-04', section: 'B', status: 'occupied', plate: 'MH-01-AX-9921', duration: '2h 15m', fare: '$8.00', entry: '08:10 AM', permit: 'Faculty ID #2004' },
+    { id: 'B-05', section: 'B', status: 'occupied', plate: 'KA-04-MM-3344', duration: '4h 40m', fare: '$16.00', entry: '05:45 AM', permit: 'Staff #0092' },
+    { id: 'B-06', section: 'B', status: 'vacant', plate: null, duration: null, fare: '$0.00', entry: null, permit: null },
+    { id: 'B-07', section: 'B', status: 'occupied', plate: 'KA-05-MJ-4021', duration: '1h 45m', fare: '$6.00', entry: '08:42 AM', permit: 'Faculty ID #88412' },
+    { id: 'B-08', section: 'B', status: 'occupied', plate: 'DL-01-RT-8842', duration: '0h 25m', fare: '$2.00', entry: '10:00 AM', permit: 'Visitor #1088' },
+    { id: 'B-09', section: 'B', status: 'vacant', plate: null, duration: null, fare: '$0.00', entry: null, permit: null },
+    { id: 'B-10', section: 'B', status: 'occupied', plate: 'KA-03-ND-6611', duration: '2h 55m', fare: '$10.00', entry: '07:30 AM', permit: 'Faculty ID #7011' },
+    { id: 'B-11', section: 'B', status: 'vacant', plate: null, duration: null, fare: '$0.00', entry: null, permit: null },
+    { id: 'B-12', section: 'B', status: 'occupied', plate: 'KL-07-CC-4099', duration: '1h 35m', fare: '$6.00', entry: '08:50 AM', permit: 'Student #6671' },
+    { id: 'B-13', section: 'B', status: 'occupied', plate: 'KA-05-PP-8120', duration: '3h 45m', fare: '$13.00', entry: '06:40 AM', permit: 'Staff #1100' },
+    { id: 'B-14', section: 'B', status: 'vacant', plate: null, duration: null, fare: '$0.00', entry: null, permit: null },
+    { id: 'B-15', section: 'B', status: 'occupied', plate: 'AP-09-KK-2219', duration: '0h 50m', fare: '$3.50', entry: '09:35 AM', permit: 'Visitor #1112' },
+    { id: 'B-16', section: 'B', status: 'occupied', plate: 'KA-01-FF-9900', duration: '2h 00m', fare: '$7.50', entry: '08:25 AM', permit: 'Student #9021' },
+    { id: 'B-17', section: 'B', status: 'occupied', plate: 'KA-04-QR-5421', duration: '4h 10m', fare: '$15.00', entry: '06:15 AM', permit: 'Faculty ID #3144' },
+    { id: 'B-18', section: 'B', status: 'vacant', plate: null, duration: null, fare: '$0.00', entry: null, permit: null },
+
+    // SECTION C (16 slots: C-01 to C-16)
+    { id: 'C-01', section: 'C', status: 'vacant', plate: null, duration: null, fare: '$0.00', entry: null, permit: null },
+    { id: 'C-02', section: 'C', status: 'occupied', plate: 'KA-05-ZZ-1102', duration: '1h 10m', fare: '$4.50', entry: '09:15 AM', permit: 'Visitor #1201' },
+    { id: 'C-03', section: 'C', status: 'occupied', plate: 'TN-01-EE-3344', duration: '3h 30m', fare: '$12.50', entry: '06:55 AM', permit: 'Staff #5411' },
+    { id: 'C-04', section: 'C', status: 'vacant', plate: null, duration: null, fare: '$0.00', entry: null, permit: null },
+    { id: 'C-05', section: 'C', status: 'occupied', plate: 'KA-03-XX-8765', duration: '2h 20m', fare: '$8.50', entry: '08:05 AM', permit: 'Student #3190' },
+    { id: 'C-06', section: 'C', status: 'occupied', plate: 'MH-14-GH-9988', duration: '0h 15m', fare: '$1.50', entry: '10:10 AM', permit: 'Visitor #1240' },
+    { id: 'C-07', section: 'C', status: 'vacant', plate: null, duration: null, fare: '$0.00', entry: null, permit: null },
+    { id: 'C-08', section: 'C', status: 'occupied', plate: 'KA-53-MN-4400', duration: '1h 40m', fare: '$6.00', entry: '08:45 AM', permit: 'Faculty ID #9901' },
+    { id: 'C-09', section: 'C', status: 'occupied', plate: 'KA-02-JK-5511', duration: '2h 05m', fare: '$7.50', entry: '08:20 AM', permit: 'Student #7819' },
+    { id: 'C-10', section: 'C', status: 'vacant', plate: null, duration: null, fare: '$0.00', entry: null, permit: null },
+    { id: 'C-11', section: 'C', status: 'occupied', plate: 'DL-03-VB-9012', duration: '4h 50m', fare: '$17.00', entry: '05:35 AM', permit: 'Staff #7721' },
+    { id: 'C-12', section: 'C', status: 'vacant', plate: null, duration: null, fare: '$0.00', entry: null, permit: null },
+    { id: 'C-13', section: 'C', status: 'occupied', plate: 'KA-01-YY-2020', duration: '1h 00m', fare: '$4.00', entry: '09:25 AM', permit: 'Visitor #1288' },
+    { id: 'C-14', section: 'C', status: 'occupied', plate: 'KA-04-RR-1988', duration: '3h 05m', fare: '$11.00', entry: '07:20 AM', permit: 'Faculty ID #6512' },
+    { id: 'C-15', section: 'C', status: 'vacant', plate: null, duration: null, fare: '$0.00', entry: null, permit: null },
+    { id: 'C-16', section: 'C', status: 'occupied', plate: 'TS-08-AA-3131', duration: '0h 45m', fare: '$3.00', entry: '09:40 AM', permit: 'Student #4092' }
+  ];
+
+  let selectedSlotId = 'B-07';
+  let activeFilter = 'all'; // 'all' | 'vacant' | 'occupied'
+  let searchQuery = '';
+
+  // Render Stall Component HTML
+  function createStallCard(slot) {
+    const isOccupied = slot.status === 'occupied';
+    const isSelected = slot.id === selectedSlotId;
+    
+    // Status visual styles
+    const bgClass = isOccupied ? 'bg-surface-container' : 'bg-surface-container-lowest';
+    const borderClass = isSelected 
+      ? 'border-2 border-primary shadow-[0_0_12px_rgba(229,169,60,0.3)]' 
+      : 'border border-surface-container-highest hover:border-outline';
+    
+    const indicatorDot = isOccupied 
+      ? '<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>' 
+      : '<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>';
+
+    return `
+      <div 
+        data-slot-id="${slot.id}" 
+        class="slot-card cursor-pointer p-space-xs rounded transition-all flex flex-col justify-between h-24 ${bgClass} ${borderClass}"
+      >
+        <!-- Card Top Bar: Slot ID and Status Dot -->
+        <div class="flex items-center justify-between pointer-events-none">
+          <span class="font-label-bay text-label-bay ${isSelected ? 'text-primary' : 'text-on-surface'}">${slot.id}</span>
+          ${indicatorDot}
+        </div>
+
+        <!-- Card Body Content: Occupied Plate vs Vacant Indicator -->
+        <div class="pointer-events-none">
+          ${isOccupied ? `
+            <div class="font-label-code text-[11px] leading-tight text-primary font-bold truncate">
+              ${slot.plate}
+            </div>
+            <div class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1 mt-0.5">
+              <span class="material-symbols-outlined text-[12px]">schedule</span>
+              <span>${slot.duration}</span>
+            </div>
+          ` : `
+            <div class="font-label-table-header text-label-table-header text-tertiary font-bold tracking-wider py-1 px-1 rounded bg-tertiary/10 text-center">
+              [ VACANT ]
+            </div>
+            <div class="font-body-sm text-body-sm text-outline text-center mt-0.5">
+              READY
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }
+
+  // Populate Grids
+  function renderGrids() {
+    const rowATop = document.getElementById('row-a-top');
+    const rowABot = document.getElementById('row-a-bottom');
+    const rowBTop = document.getElementById('row-b-top');
+    const rowBBot = document.getElementById('row-b-bottom');
+    const rowCTop = document.getElementById('row-c-top');
+    const rowCBot = document.getElementById('row-c-bottom');
+
+    const filterFunction = (slot) => {
+      // Status filter
+      if (activeFilter === 'vacant' && slot.status !== 'vacant') return false;
+      if (activeFilter === 'occupied' && slot.status !== 'occupied') return false;
+      // Search text filter
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const matchesId = slot.id.toLowerCase().includes(q);
+        const matchesPlate = slot.plate && slot.plate.toLowerCase().includes(q);
+        if (!matchesId && !matchesPlate) return false;
+      }
+      return true;
+    };
+
+    const buildHTML = (slots) => {
+      return slots.map(slot => {
+        const visible = filterFunction(slot);
+        if (!visible) {
+          return `
+            <div class="h-24 rounded border border-surface-container-highest/30 bg-surface-container-lowest/30 flex items-center justify-center text-outline-variant font-label-code text-body-sm opacity-40">
+              ${slot.id}
+            </div>
+          `;
+        }
+        return createStallCard(slot);
+      }).join('');
+    };
+
+    // Filter into rows
+    const aSlots = parkingData.filter(s => s.section === 'A');
+    rowATop.innerHTML = buildHTML(aSlots.slice(0, 8));
+    rowABot.innerHTML = buildHTML(aSlots.slice(8, 16));
+
+    const bSlots = parkingData.filter(s => s.section === 'B');
+    rowBTop.innerHTML = buildHTML(bSlots.slice(0, 9));
+    rowBBot.innerHTML = buildHTML(bSlots.slice(9, 18));
+
+    const cSlots = parkingData.filter(s => s.section === 'C');
+    rowCTop.innerHTML = buildHTML(cSlots.slice(0, 8));
+    rowCBot.innerHTML = buildHTML(cSlots.slice(8, 16));
+
+    // Bind click events to stalls
+    document.querySelectorAll('.slot-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const slotId = card.getAttribute('data-slot-id');
+        selectSlot(slotId);
+      });
+    });
+  }
+
+  // Update Inspector details when slot clicked
+  function selectSlot(slotId) {
+    selectedSlotId = slotId;
+    const slot = parkingData.find(s => s.id === slotId);
+    if (!slot) return;
+
+    // Update Header
+    document.getElementById('inspectedSlotId').innerText = `SLOT ${slot.id}`;
+    document.getElementById('inspectedSectionText').innerText = `SECTION ${slot.section} • LEVEL 01 GENERAL`;
+    
+    // Status Badge
+    const badge = document.getElementById('inspectedStatusBadge');
+    if (slot.status === 'occupied') {
+      badge.className = 'px-space-sm py-1 rounded bg-primary/10 text-primary font-label-code text-label-code uppercase tracking-wider';
+      badge.innerText = 'OCCUPIED';
+    } else {
+      badge.className = 'px-space-sm py-1 rounded bg-tertiary/10 text-tertiary font-label-code text-label-code uppercase tracking-wider';
+      badge.innerText = 'AVAILABLE';
+    }
+
+    // Attributes Table
+    document.getElementById('inspectedPlate').innerText = slot.plate || 'NONE (UNASSIGNED)';
+    document.getElementById('inspectedPlatePreview').innerText = slot.plate || 'NO VEHICLE';
+    document.getElementById('inspectedPermit').innerText = slot.permit || 'None';
+    document.getElementById('inspectedEntryTime').innerText = slot.entry || 'N/A';
+    document.getElementById('inspectedDuration').innerText = slot.duration || '0m';
+    document.getElementById('inspectedFare').innerText = slot.fare || '$0.00';
+    document.getElementById('inspectedSensor').innerText = `NODE_${slot.id.replace('-', '')}_US_V2`;
+
+    // Action button state
+    const releaseBtn = document.getElementById('btnReleaseSlot');
+    if (slot.status === 'occupied') {
+      releaseBtn.disabled = false;
+      releaseBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      releaseBtn.innerHTML = '<span class="material-symbols-outlined text-[20px]">eject</span> Manually Release Slot';
+    } else {
+      releaseBtn.disabled = true;
+      releaseBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      releaseBtn.innerHTML = '<span class="material-symbols-outlined text-[20px]">check_circle</span> Slot Currently Vacant';
+    }
+
+    renderGrids();
+  }
+
+  // Release slot manual action
+  document.getElementById('btnReleaseSlot').addEventListener('click', () => {
+    const slot = parkingData.find(s => s.id === selectedSlotId);
+    if (slot && slot.status === 'occupied') {
+      slot.status = 'vacant';
+      slot.plate = null;
+      slot.duration = null;
+      slot.fare = '$0.00';
+      slot.entry = null;
+      slot.permit = null;
+      updateCounts();
+      selectSlot(slot.id);
+    }
+  });
+
+  // Maintenance toggle action
+  document.getElementById('btnMarkMaint').addEventListener('click', () => {
+    alert(`Slot ${selectedSlotId} flagged for sensor calibration in DBMS maintenance ledger.`);
+  });
+
+  // Hardware Poll micro interaction
+  document.getElementById('btnSyncSensor').addEventListener('click', () => {
+    const btn = document.getElementById('btnSyncSensor');
+    btn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span> Polling...';
+    setTimeout(() => {
+      btn.innerHTML = '<span class="material-symbols-outlined text-[16px] text-tertiary">check</span> Online 14ms';
+      setTimeout(() => {
+        btn.innerHTML = '<span class="material-symbols-outlined text-[16px] text-secondary">sync</span> Poll Hardware';
+      }, 1500);
+    }, 600);
+  });
+
+  // Update counts in header
+  function updateCounts() {
+    const vacant = parkingData.filter(s => s.status === 'vacant').length;
+    const occupied = parkingData.filter(s => s.status === 'occupied').length;
+    document.getElementById('vacantCount').innerText = vacant;
+    document.getElementById('occupiedCount').innerText = occupied;
+  }
+
+  // Filter Buttons
+  const filterAllBtn = document.getElementById('filterAll');
+  const filterVacantBtn = document.getElementById('filterVacant');
+  const filterOccupiedBtn = document.getElementById('filterOccupied');
+
+  function resetFilterStyles() {
+    [filterAllBtn, filterVacantBtn, filterOccupiedBtn].forEach(b => {
+      b.classList.remove('bg-surface-container-high', 'font-bold');
+    });
+  }
+
+  filterAllBtn.addEventListener('click', () => {
+    activeFilter = 'all';
+    resetFilterStyles();
+    filterAllBtn.classList.add('bg-surface-container-high', 'font-bold');
+    renderGrids();
+  });
+
+  filterVacantBtn.addEventListener('click', () => {
+    activeFilter = 'vacant';
+    resetFilterStyles();
+    filterVacantBtn.classList.add('bg-surface-container-high', 'font-bold');
+    renderGrids();
+  });
+
+  filterOccupiedBtn.addEventListener('click', () => {
+    activeFilter = 'occupied';
+    resetFilterStyles();
+    filterOccupiedBtn.classList.add('bg-surface-container-high', 'font-bold');
+    renderGrids();
+  });
+
+  // Search filter listener
+  const searchInput = document.getElementById('slotSearchInput');
+  searchInput.addEventListener('input', (e) => {
+    searchQuery = e.target.value.trim();
+    renderGrids();
+  });
+
+  document.getElementById('clearSearchBtn').addEventListener('click', () => {
+    searchInput.value = '';
+    searchQuery = '';
+    activeFilter = 'all';
+    resetFilterStyles();
+    filterAllBtn.classList.add('bg-surface-container-high', 'font-bold');
+    renderGrids();
+  });
+
+  // Initialize
+  renderGrids();
+  selectSlot('B-07');
+</script></main><footer class="w-full bg-surface-container-lowest border-t border-surface-container-highest py-space-md"><div class="w-full px-gutter-lg flex items-center justify-between font-label-table-header text-label-table-header text-on-surface-variant uppercase tracking-widest"><span>SMART PARKING DBMS • CS301 DATABASE PROJECT</span><span>RELATIONAL CORE v4.1 // LATENCY &lt; 14MS</span></div></footer></body></html>
