@@ -1,15 +1,14 @@
 """
-streamlit_app.py - Smart Parking Management System
+streamlit_app.py - Smart Parking Management System (PARK-DBMS console)
 
-A production-style parking terminal UI on top of the existing, verified
-pipeline: camera -> YOLO plate detection -> EasyOCR -> plate_ocr.py
-(assembly/voting) -> MySQL (db.py) -> fare calculation (C binary).
+UI matches the Material-3 dark/amber reference design supplied by the user
+(Google Stitch export). Every value shown comes from a real db.py call, the
+real OCR/YOLO pipeline, or the real C fare calculator - no fabricated
+hardware telemetry, camera names, sensor IDs, or driver/permittee tracking,
+since none of that exists in this project's schema or backend.
 
-This file wires that pipeline to the customer-facing screens in
-ui/components.py. The pipeline itself is unchanged from the working
-version - only what gets shown to the person standing at the terminal
-has changed. No OCR reads, confidence scores, session IDs, or SQL details
-are ever rendered here; see ui/components.py for the presentation layer.
+Pipeline (unchanged): camera -> YOLO plate detection -> EasyOCR ->
+plate_ocr.py (assembly/voting) -> MySQL (db.py) -> C fare calculator.
 """
 
 import streamlit as st
@@ -18,7 +17,6 @@ from ultralytics import YOLO
 import easyocr
 import os
 import time
-import pandas as pd
 from datetime import datetime
 
 # Plate text assembly / validation (post-processing only - the YOLO model
@@ -28,10 +26,10 @@ import plate_ocr
 # MySQL integration
 import db
 
-# Presentation layer - styling + reusable customer-facing UI blocks
+# Presentation layer
 from ui import styles, components
 
-st.set_page_config(page_title="Parking", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="PARK-DBMS", layout="wide", initial_sidebar_state="collapsed")
 styles.inject()
 
 # ── Session state ────────────────────────────────────────────────
@@ -42,14 +40,13 @@ if "pending_plate" not in st.session_state:      # read, but not yet confirmed
 if "last_processed" not in st.session_state:     # (plate, unix_ts) de-dupe guard
     st.session_state.last_processed = ("", 0.0)
 if "page" not in st.session_state:
-    st.session_state.page = "Scan"
+    st.session_state.page = "Dashboard"
+if "selected_slot" not in st.session_state:
+    st.session_state.selected_slot = None
 if "db_ok" not in st.session_state:
     ok, info = db.test_connection()
     st.session_state.db_ok   = ok
     st.session_state.db_info = info
-
-# ── Top bar ──────────────────────────────────────────────────────
-components.render_topbar(st.session_state.page)
 
 # ── Models ───────────────────────────────────────────────────────
 @st.cache_resource
@@ -58,12 +55,21 @@ def load_models():
 
 model, reader = load_models()
 
+# ── Top bar ──────────────────────────────────────────────────────
+components.render_topbar(st.session_state.page, st.session_state.db_ok)
+
 # Plate layouts and character repair live in plate_ocr.py.
 OCR_MIN_CONF = 0.15      # ignore EasyOCR reads below this confidence
 VOTE_THRESHOLD = 2       # a plate must be seen in this many separate frames
 SCAN_SECONDS = 45        # wall-clock scan budget; OCR speed varies a lot
 REPROCESS_COOLDOWN = 25  # seconds; a re-read of the same plate is ignored so a
                          # fresh entry is not instantly turned into an exit
+
+# Real, currently-enforced fare rule (parkinglot.c): weekends, or 18:00-22:00
+# on weekdays, bill at the peak rate instead of the base rate.
+BASE_RATE_PER_MIN = 0.67
+PEAK_RATE_PER_MIN = 0.80
+PEAK_WINDOW_LABEL = "Weekends & 18:00–22:00"
 
 
 def preprocess_plate(img):
@@ -85,21 +91,18 @@ def preprocess_plate(img):
 def run_scan(frame_ph):
     """
     Drive the camera for up to SCAN_SECONDS, voting per frame on the best
-    plate read. Identical detection/matching logic to the verified pipeline -
-    only the per-frame technical status text has been removed; the camera
-    feed itself is still shown live.
+    plate read. Same detection/matching algorithm as the verified pipeline -
+    only the per-frame technical status text has been removed.
 
     Returns "locked", "near_miss" or "none". On "locked",
     st.session_state.detected_plate is set; on "near_miss",
     st.session_state.pending_plate is set for manual confirmation.
     """
     cap = cv2.VideoCapture(0)
-
-    # Warm-up: discard first 15 frames so camera auto-exposure settles
-    for _ in range(15):
+    for _ in range(15):   # warm-up: let camera auto-exposure settle
         cap.read()
 
-    plate_votes = {}   # plate -> {"votes", "score"}
+    plate_votes = {}
     scan_started = time.time()
 
     while time.time() - scan_started < SCAN_SECONDS:
@@ -108,7 +111,7 @@ def run_scan(frame_ph):
             break
 
         display_frame = frame.copy()
-        frame_candidates = {}   # plate -> best candidate seen this frame
+        frame_candidates = {}
 
         results = model(frame, conf=0.20, verbose=False)
 
@@ -118,9 +121,7 @@ def run_scan(frame_ph):
 
             for idx, box in enumerate(r.boxes.xyxy):
                 x1, y1, x2, y2 = map(int, box)
-
-                # Subtle box on the live feed - useful feedback, not a debug overlay
-                cv2.rectangle(display_frame, (x1, y1), (x2, y2), (37, 99, 235), 2)
+                cv2.rectangle(display_frame, (x1, y1), (x2, y2), (101, 198, 255), 2)
 
                 pad = 12
                 h_f, w_f = frame.shape[:2]
@@ -138,27 +139,17 @@ def run_scan(frame_ph):
 
                 for img_candidate in ocr_inputs:
                     ocr_out = reader.readtext(img_candidate, detail=1, paragraph=False)
-
-                    # Assemble the text boxes into plate candidates. This is
-                    # what recovers two-line plates ("MH12" + "AB1234") and
-                    # look-alike characters (I/1, O/0, B/8) that a per-box
-                    # regex could never match.
                     for cand in plate_ocr.extract_plates(ocr_out, min_conf=OCR_MIN_CONF):
                         prev = frame_candidates.get(cand["plate"])
                         if prev is None or cand["score"] > prev["score"]:
                             frame_candidates[cand["plate"]] = cand
 
-        # One vote per plate per frame
         for plate_text, cand in frame_candidates.items():
-            slot = plate_votes.setdefault(plate_text, {"votes": 0, "score": 0.0})
-            slot["votes"] += 1
-            slot["score"] = max(slot["score"], cand["score"])
+            v = plate_votes.setdefault(plate_text, {"votes": 0, "score": 0.0})
+            v["votes"] += 1
+            v["score"] = max(v["score"], cand["score"])
 
-        best_plate = max(
-            plate_votes.items(),
-            key=lambda kv: (kv[1]["votes"], kv[1]["score"]),
-            default=None
-        )
+        best_plate = max(plate_votes.items(), key=lambda kv: (kv[1]["votes"], kv[1]["score"]), default=None)
 
         if best_plate and best_plate[1]["votes"] >= VOTE_THRESHOLD:
             st.session_state.detected_plate = best_plate[0]
@@ -175,77 +166,135 @@ def run_scan(frame_ph):
     except Exception:
         pass
 
-    # Never throw away a near miss: a plate seen in only one frame is
-    # offered for confirmation instead of being silently dropped.
-    near_miss = max(
-        plate_votes.items(),
-        key=lambda kv: (kv[1]["votes"], kv[1]["score"]),
-        default=None
-    )
+    near_miss = max(plate_votes.items(), key=lambda kv: (kv[1]["votes"], kv[1]["score"]), default=None)
     if near_miss:
         st.session_state.pending_plate = near_miss[0]
         return "near_miss"
-
     return "none"
 
 
 # ════════════════════════════════════════════════════════════════
-# PAGE: SCAN (the terminal)
+# PAGE: DASHBOARD
 # ════════════════════════════════════════════════════════════════
-if st.session_state.page == "Scan":
+if st.session_state.page == "Dashboard":
 
-    _, center, _ = st.columns([1, 3, 1])
-    with center:
-        components.welcome_card()
+    try:
+        summary = db.get_slot_summary()
+        slots = db.get_all_slots()
+        total = int(summary.get("total") or 0)
+        available = int(summary.get("available") or 0)
+        occupied = int(summary.get("occupied") or 0)
 
-        _, btn_col, _ = st.columns([1, 1.4, 1])
-        with btn_col:
-            start = st.button("Scan Vehicle", type="primary",
-                              width="stretch", key="start_scan")
+        zone_counts = {}
+        for s in slots:
+            zone_counts[s["zone"]] = zone_counts.get(s["zone"], 0) + 1
+        zone_text = " • ".join(f"Zone {z} ({n})" for z, n in sorted(zone_counts.items()))
 
+        components._md(
+            "<div class='pk-eyebrow'>FACILITY TELEMETRY</div>"
+            "<div class='pk-h1' style='margin-bottom:1.25rem;'>Parking Overview</div>"
+        )
+
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            components.stat_card("Total Capacity", total, "Bays Total", zone_text or "—", "local_parking")
+        with c2:
+            pct = round((occupied / total) * 100) if total else 0
+            components.stat_card("Active Occupancy", occupied, "Vehicles Parked", f"{pct}% Slot Saturation", "directions_car")
+        with c3:
+            components.stat_card("Available Bays", available, "Open Now", "Ready for instant check-in", "check_circle", accent=True)
+        with c4:
+            components.stat_card("Base Tariff", f"₹{BASE_RATE_PER_MIN:.2f}", "/ min",
+                                 f"Peak ₹{PEAK_RATE_PER_MIN:.2f}/min • {PEAK_WINDOW_LABEL}", "schedule")
+
+        st.write("")
+        components.utilization_bar(occupied, total)
+        st.write("")
+
+        col_feed, col_side = st.columns([2, 1])
+        with col_feed:
+            try:
+                records = db.get_parking_records(15)
+                records = sorted(records, key=lambda r: r.get("exit_time") or r.get("entry_time"), reverse=True)[:6]
+            except Exception:
+                records = []
+            components.activity_feed(records)
+
+        with col_side:
+            components._md("<div class='pk-h2' style='margin-bottom:0.6rem;'>Quick Actions</div>")
+            components.action_link("Process Entry / Exit", "Plate scan & manual entry", "swap_horiz")
+            if st.button("Open Parking Terminal", key="qa_parking", width="stretch"):
+                st.session_state.page = "Parking"; st.rerun()
+            components.action_link("View Facility Map", "Interactive slot grid", "map")
+            if st.button("Open Map", key="qa_map", width="stretch"):
+                st.session_state.page = "Map"; st.rerun()
+            components.action_link("Session Records", "Full transaction ledger", "receipt_long")
+            if st.button("Open Records", key="qa_records", width="stretch"):
+                st.session_state.page = "Records"; st.rerun()
+
+            st.write("")
+            components.system_status_box(st.session_state.db_ok, st.session_state.db_info, model_ready=True)
+
+    except Exception as e:
+        st.error(f"Dashboard data unavailable: {e}")
+
+# ════════════════════════════════════════════════════════════════
+# PAGE: PARKING (scan / entry-exit terminal)
+# ════════════════════════════════════════════════════════════════
+elif st.session_state.page == "Parking":
+
+    components._md(
+        "<div class='pk-eyebrow'>VEHICLE ENTRY / EXIT</div>"
+        "<div class='pk-h1' style='margin-bottom:0.25rem;'>Plate Scan Terminal</div>"
+        "<div class='pk-muted' style='margin-bottom:1rem;'>Entry or exit is detected automatically "
+        "from whether the plate already has an active session.</div>"
+    )
+
+    col_cam, col_side = st.columns([7, 5])
+
+    with col_cam:
+        start = st.button("Scan Vehicle", type="primary", width="stretch", key="start_scan")
         camera_slot = st.empty()
 
         if start:
-            frame_ph = components.camera_stage(camera_slot)
+            frame_ph = components.camera_stage(camera_slot, "PLATE CAMERA • LIVE FEED")
             outcome = run_scan(frame_ph)
             camera_slot.empty()
 
             if outcome == "near_miss":
                 components.info_card(
                     "Almost there",
-                    f"We read {components.plate_pretty(st.session_state.pending_plate)} "
-                    "- please confirm it below.",
+                    f"Read {components.plate_pretty(st.session_state.pending_plate)} in only one frame "
+                    "- confirm it below.", "search",
                 )
             elif outcome == "none":
                 components.no_plate_card()
 
-        # Manual entry fallback - also confirms a low-confidence scan.
-        # A widget's session_state value can't be reassigned after the widget
-        # has been instantiated in the same run, so a completed transaction
-        # requests the clear here (before manual_entry_block creates the
-        # text_input below) instead of clearing it directly at the end.
-        if st.session_state.pop("_clear_manual_input", False):
-            st.session_state.manual_input = ""
-        prefill = st.session_state.detected_plate or st.session_state.pending_plate
-        if prefill and st.session_state.get("manual_input", "") != prefill:
-            st.session_state.manual_input = prefill
-        submitted, manual_value = components.manual_entry_block(prefill)
-        if submitted:
-            st.session_state.detected_plate = manual_value.upper().strip()
-            st.session_state.pending_plate = ""
+        with st.expander("Manual Plate Entry", expanded=bool(st.session_state.pending_plate)):
+            prefill = st.session_state.detected_plate or st.session_state.pending_plate
+            if st.session_state.pop("_clear_manual_input", False):
+                st.session_state.manual_input = ""
+            if prefill and st.session_state.get("manual_input", "") != prefill:
+                st.session_state.manual_input = prefill
+            submitted, manual_value = components.manual_entry_block(prefill)
+            if submitted:
+                st.session_state.detected_plate = manual_value.upper().strip()
+                st.session_state.pending_plate = ""
 
-        plate = st.session_state.detected_plate
+    plate = st.session_state.detected_plate
 
-        # De-dupe guard: ignore a re-read of the same plate moments after it
-        # was processed, so it can't be mistaken for an exit right after entry.
-        last_plate, last_ts = st.session_state.last_processed
-        if plate and plate == last_plate and time.time() - last_ts < REPROCESS_COOLDOWN:
+    # De-dupe guard: ignore a re-read of the same plate moments after it was
+    # processed, so it can't be mistaken for an exit right after entry.
+    last_plate, last_ts = st.session_state.last_processed
+    if plate and plate == last_plate and time.time() - last_ts < REPROCESS_COOLDOWN:
+        with col_side:
             components.duplicate_scan_card(plate)
-            plate = ""
-            st.session_state.detected_plate = ""
+        plate = ""
+        st.session_state.detected_plate = ""
 
-        if plate:
-            components.plate_detected_banner(plate)
+    if plate:
+        with col_side:
+            components.detected_plate_readout(plate, "CAR")
             now = datetime.now()
 
             if not st.session_state.db_ok:
@@ -267,8 +316,20 @@ if st.session_state.page == "Scan":
                             result = {"success": False}
 
                         if result.get("success"):
-                            components.entry_success_card(
-                                plate, result["slot_number"], now.strftime("%I:%M %p")
+                            slot_info = next(
+                                (s for s in db.get_all_slots() if s["slot_number"] == result["slot_number"]),
+                                None,
+                            )
+                            zone = slot_info["zone"] if slot_info else "?"
+                            floor = slot_info["floor"] if slot_info else "?"
+                            components.slot_allocation_box(result["slot_number"], zone, floor)
+                            components.kv_grid([
+                                ("Entry Timestamp", now.strftime("%H:%M:%S")),
+                                ("Tariff Rate Basis", f"₹{BASE_RATE_PER_MIN:.2f} / min base"),
+                            ])
+                            components.confirmation_box(
+                                "Slot Assigned",
+                                f"Vehicle registered. Proceed to slot {result['slot_number']}.",
                             )
                         else:
                             components.processing_failed_card()
@@ -276,27 +337,17 @@ if st.session_state.page == "Scan":
                     # ── EXIT ───────────────────────────────────
                     else:
                         entry_time = active["entry_time"]
-                        exit_time  = now
+                        exit_time = now
 
                         try:
-                            fare = db.call_c_fare_calculator(
-                                entry_time.timestamp(), exit_time.timestamp()
-                            )
+                            fare = db.call_c_fare_calculator(entry_time.timestamp(), exit_time.timestamp())
                         except Exception:
-                            # Fallback: simple calculation, matches the C
-                            # calculator's base-rate-only behaviour
                             dur_sec = max(60, int((exit_time - entry_time).total_seconds()))
                             fare = {
-                                "status": "ACTIVE",
-                                "total_duration": dur_sec,
-                                "base_minutes": dur_sec,
-                                "base_rate": 0.67,
-                                "base_amount": round(dur_sec * 0.67, 2),
-                                "peak_minutes": 0,
-                                "peak_surcharge": 0.80,
-                                "peak_amount": 0.0,
-                                "total_amount": round(dur_sec * 0.67, 2),
-                                "is_rush_hour": 0
+                                "status": "ACTIVE", "total_duration": dur_sec, "base_minutes": dur_sec,
+                                "base_rate": BASE_RATE_PER_MIN, "base_amount": round(dur_sec * BASE_RATE_PER_MIN, 2),
+                                "peak_minutes": 0, "peak_surcharge": PEAK_RATE_PER_MIN, "peak_amount": 0.0,
+                                "total_amount": round(dur_sec * BASE_RATE_PER_MIN, 2), "is_rush_hour": 0,
                             }
 
                         try:
@@ -304,163 +355,220 @@ if st.session_state.page == "Scan":
                         except Exception:
                             exit_result = {"success": False}
 
-                        # NOTE: the C calculator's "TOTAL_DURATION" is actually the raw
-                        # elapsed seconds between entry and exit (its fare math treats
-                        # 1 elapsed second as 1 billable "minute" - a deliberate demo
-                        # shortcut in parkinglot.c, unchanged here). That makes it the
-                        # correct input for a real elapsed-time display.
-                        components.exit_billing_card(
-                            plate,
+                        components.exit_summary_box(
+                            plate, active["slot_number"],
+                            entry_time.strftime("%H:%M:%S"), exit_time.strftime("%H:%M:%S"),
                             components.format_duration(fare["total_duration"]),
+                        )
+                        components.fare_breakdown_box(
                             fare["base_amount"], fare["peak_amount"],
+                            fare["base_minutes"], fare["peak_minutes"],
                             fare["total_amount"], bool(fare["is_rush_hour"]),
                         )
 
-                        if not exit_result.get("success"):
-                            st.markdown(
-                                "<div class='pk-footnote'>Please show this screen "
-                                "to the parking attendant.</div>",
-                                unsafe_allow_html=True,
+                        if exit_result.get("success"):
+                            components.confirmation_box(
+                                "Payment Verified • Slot Released",
+                                f"Slot {active['slot_number']} is now available.", "done_all",
                             )
+                        else:
+                            components.info_card("Exit not recorded", "Please show this screen to the attendant.", "error")
 
                         if os.path.exists("payment_qr.png"):
+                            st.write("")
                             _, qcol, _ = st.columns([1, 1, 1])
                             with qcol:
-                                st.markdown(
-                                    "<div class='pk-footnote' style='margin-top:1rem;'>"
-                                    "Scan to pay</div>", unsafe_allow_html=True
-                                )
-                                st.image("payment_qr.png", width=180)
+                                st.caption("Scan to pay")
+                                st.image("payment_qr.png", width=160)
 
             st.session_state.detected_plate = ""
             st.session_state.pending_plate = ""
             st.session_state._clear_manual_input = True
 
 # ════════════════════════════════════════════════════════════════
-# PAGE: AVAILABILITY
+# PAGE: MAP (slot grid + inspector)
 # ════════════════════════════════════════════════════════════════
-elif st.session_state.page == "Availability":
+elif st.session_state.page == "Map":
 
-    _, center, _ = st.columns([1, 3, 1])
-    with center:
-        try:
-            summary = db.get_slot_summary()
-            slots = db.get_all_slots()
-            components.availability_summary(
-                int(summary.get("available", 0) or 0), int(summary.get("total", 0) or 0)
-            )
-            components.slot_grid_by_zone(slots)
-        except Exception:
-            components.info_card(
-                "Availability is temporarily unavailable",
-                "Please check with the parking attendant.",
-                tone="error",
-            )
+    try:
+        summary = db.get_slot_summary()
+        slots = db.get_all_slots()
+        active_sessions = db.get_active_sessions()
+        active_by_slot = {a["slot_number"]: a for a in active_sessions}
+
+        components._md("<div class='pk-eyebrow'>FACILITY SCHEMATIC</div>")
+        col_head_l, col_head_r = st.columns([3, 1])
+        with col_head_l:
+            components._md("<div class='pk-h1' style='margin-bottom:0.25rem;'>Slot Grid</div>")
+        with col_head_r:
+            components.availability_summary(int(summary.get("available") or 0), int(summary.get("total") or 0))
+
+        search = st.text_input("Search Slot ID or Plate", placeholder="e.g. 12, MH12AB1234...",
+                               key="map_search", label_visibility="collapsed")
+
+        col_grid, col_inspect = st.columns([8, 4])
+
+        with col_grid:
+            zones = {}
+            for s in slots:
+                zones.setdefault(s["zone"], []).append(s)
+
+            q = (search or "").strip().upper()
+            with st.container(key="slotgrid"):
+                for zone in sorted(zones):
+                    zone_slots = zones[zone]
+                    components._md(
+                        f"<div class='pk-zone-head'><span class='pk-zone-title'>Zone {zone}</span>"
+                        f"<span class='pk-zone-sub'>{len(zone_slots)} bays</span></div>"
+                    )
+                    cols = st.columns(8)
+                    shown = 0
+                    for s in zone_slots:
+                        session = active_by_slot.get(s["slot_number"])
+                        plate = session["number_plate"] if session else ""
+                        if q and q not in s["slot_number"].upper() and q not in plate.upper():
+                            continue
+                        shown += 1
+                        col = cols[(shown - 1) % 8]
+                        status_cls = {
+                            "OCCUPIED": "pk-slot-occupied",
+                            "AVAILABLE": "pk-slot-available",
+                            "MAINTENANCE": "pk-slot-maintenance",
+                        }.get(s["status"], "pk-slot-available")
+                        if s["slot_number"] == st.session_state.selected_slot:
+                            status_cls += " pk-slot-selected"
+                        status_word = {"AVAILABLE": "Vacant", "MAINTENANCE": "Maint."}.get(s["status"], s["status"].title())
+                        label = f"{s['slot_number']}\n{plate if session else status_word}"
+                        with col:
+                            st.markdown(f"<div class='{status_cls}'>", unsafe_allow_html=True)
+                            # NOTE: no st.rerun() here - see the matching
+                            # note in ui/components.py's nav loop. The
+                            # inspector panel below reads selected_slot
+                            # later in this same run, so it updates
+                            # immediately regardless; only this button's
+                            # own "selected" border would lag one render.
+                            if st.button(label, key=f"slot_{s['slot_id']}"):
+                                st.session_state.selected_slot = s["slot_number"]
+                            st.markdown("</div>", unsafe_allow_html=True)
+                    if shown == 0:
+                        components._md("<div class='pk-muted' style='padding:0.5rem;'>No matching bays.</div>")
+
+        with col_inspect:
+            components._md("<div class='pk-h2' style='margin-bottom:0.5rem;'>Slot Inspector</div>")
+            sel = st.session_state.selected_slot
+            slot_info = next((s for s in slots if s["slot_number"] == sel), None) if sel else None
+
+            if not slot_info:
+                components.info_card("No slot selected", "Click a bay on the grid to inspect it.", "touch_app")
+            else:
+                session = active_by_slot.get(sel)
+                components._md(
+                    f"<div class='pk-card'><div class='pk-eyebrow'>SLOT {slot_info['slot_number']}</div>"
+                    f"<div class='pk-muted'>Zone {slot_info['zone']} • Floor {slot_info['floor']} • "
+                    f"{slot_info['slot_type'].title()}</div></div>"
+                )
+                if session:
+                    entry_time = session["entry_time"]
+                    elapsed = components.format_duration(int((datetime.now() - entry_time).total_seconds()))
+                    try:
+                        live_fare = db.call_c_fare_calculator(entry_time.timestamp(), datetime.now().timestamp())
+                        fare_str = f"₹{live_fare['total_amount']:.2f}"
+                    except Exception:
+                        fare_str = "—"
+                    components.kv_grid([
+                        ("Vehicle Plate", components.plate_pretty(session["number_plate"])),
+                        ("Entry Time", entry_time.strftime("%H:%M:%S")),
+                        ("Elapsed Time", elapsed),
+                        ("Accrued Fare (est.)", fare_str),
+                    ])
+                elif slot_info["status"] == "MAINTENANCE":
+                    components.info_card("Under maintenance", "This bay is currently out of service.", "build")
+                else:
+                    components.info_card("Vacant", "Ready for the next vehicle.", "check_circle")
+
+    except Exception as e:
+        st.error(f"Map data unavailable: {e}")
 
 # ════════════════════════════════════════════════════════════════
-# PAGE: OPERATOR  (staff-facing: records, live sessions, revenue)
+# PAGE: RECORDS (session ledger)
 # ════════════════════════════════════════════════════════════════
-elif st.session_state.page == "Operator":
+elif st.session_state.page == "Records":
 
-    st.markdown("<div class='pk-eyebrow' style='margin-top:0.5rem;'>Operator view</div>",
-                unsafe_allow_html=True)
+    try:
+        records = db.get_parking_records(200)
+    except Exception as e:
+        records = []
+        st.error(f"Records unavailable: {e}")
 
-    tab_overview, tab_records, tab_reference = st.tabs(["Overview", "Records", "Reference"])
+    total_n = len(records)
+    active_n = sum(1 for r in records if r.get("session_status") == "ACTIVE")
+    completed_n = sum(1 for r in records if r.get("session_status") == "COMPLETED")
 
-    with tab_overview:
-        try:
-            summary = db.get_slot_summary()
-            active_list = db.get_active_sessions()
-            revenue_data = db.get_daily_revenue()
+    components._md(
+        "<div class='pk-eyebrow'>SCHEMA • PUBLIC.PARKING_HISTORY</div>"
+        "<div class='pk-h1' style='margin-bottom:0.25rem;'>Session Ledger Records</div>"
+        "<div class='pk-muted' style='margin-bottom:1rem;'>Real-time ingress/egress events and automated billing.</div>"
+    )
 
-            col1, col2, col3, col4 = st.columns(4)
-            col1.metric("Total Slots",     summary.get("total",    30))
-            col2.metric("Available",       summary.get("available", 0))
-            col3.metric("Occupied",        summary.get("occupied",  0))
-            col4.metric("Active Sessions", len(active_list))
+    col_f1, col_f2, col_f3, col_search = st.columns([1, 1, 1, 2])
+    if "records_filter" not in st.session_state:
+        st.session_state.records_filter = "all"
+    with col_f1:
+        if st.button(f"All Sessions ({total_n})", key="f_all", type=("primary" if st.session_state.records_filter == "all" else "secondary"), width="stretch"):
+            st.session_state.records_filter = "all"; st.rerun()
+    with col_f2:
+        if st.button(f"Active ({active_n})", key="f_active", type=("primary" if st.session_state.records_filter == "active" else "secondary"), width="stretch"):
+            st.session_state.records_filter = "active"; st.rerun()
+    with col_f3:
+        if st.button(f"Completed ({completed_n})", key="f_completed", type=("primary" if st.session_state.records_filter == "completed" else "secondary"), width="stretch"):
+            st.session_state.records_filter = "completed"; st.rerun()
+    with col_search:
+        search = st.text_input("Filter by plate or slot", placeholder="Filter by plate number or slot...",
+                               key="records_search", label_visibility="collapsed")
 
-            st.markdown("---")
-            col_left, col_right = st.columns(2)
+    f = st.session_state.records_filter
+    q = (search or "").strip().upper()
+    filtered = []
+    for r in records:
+        if f == "active" and r.get("session_status") != "ACTIVE":
+            continue
+        if f == "completed" and r.get("session_status") != "COMPLETED":
+            continue
+        if q and q not in (r.get("number_plate") or "").upper() and q not in (r.get("slot_number") or "").upper():
+            continue
+        filtered.append(r)
 
-            with col_left:
-                st.markdown("**Currently Parked**")
-                if active_list:
-                    df = pd.DataFrame(active_list)[["number_plate", "slot_number", "entry_time", "minutes_parked"]]
-                    df.columns = ["Plate", "Slot", "Entry", "Minutes Parked"]
-                    st.dataframe(df, width="stretch")
-                else:
-                    st.caption("No vehicles currently parked.")
+    components._md(
+        f"<div class='pk-muted' style='margin-bottom:0.5rem;'>Showing "
+        f"<b style='color:{styles.COLORS['text']};'>{len(filtered)}</b> of "
+        f"<b style='color:{styles.COLORS['text']};'>{total_n}</b> sessions</div>"
+    )
 
-            with col_right:
-                st.markdown("**Daily Revenue**")
-                if revenue_data:
-                    df = pd.DataFrame(revenue_data)
-                    df["revenue_date"] = pd.to_datetime(df["revenue_date"]).dt.strftime("%d %b")
-                    df = df.rename(columns={
-                        "revenue_date":       "Date",
-                        "total_sessions":     "Sessions",
-                        "total_revenue":      "Revenue (₹)",
-                        "rush_hour_sessions": "Rush Hour"
-                    })
-                    st.dataframe(df[["Date", "Sessions", "Revenue (₹)", "Rush Hour"]],
-                                width="stretch")
-                else:
-                    st.caption("No revenue data yet.")
+    rows_html = ['<table class="pk-table"><thead><tr>',
+                 "<th>Session</th><th>Plate</th><th>Slot</th><th>Entry</th><th>Exit</th>",
+                 "<th>Duration</th><th>Rate</th><th>Total Fare</th><th>Status</th></tr></thead><tbody>"]
 
-            if revenue_data:
-                st.markdown("---")
-                st.markdown("**Revenue Trend**")
-                chart_df = pd.DataFrame(revenue_data)
-                chart_df["revenue_date"] = pd.to_datetime(chart_df["revenue_date"])
-                chart_df = chart_df.sort_values("revenue_date")
-                st.bar_chart(chart_df.set_index("revenue_date")["total_revenue"])
-
-        except Exception as e:
-            st.error(f"Dashboard data unavailable: {e}")
-
-    with tab_records:
-        sub1, sub2, sub3 = st.tabs(["All Records", "Active Sessions", "Search Vehicle"])
-
-        with sub1:
-            try:
-                records = db.get_parking_records(200)
-                if records:
-                    df = pd.DataFrame(records)
-                    st.dataframe(df, width="stretch")
-                    st.caption(f"Total records: {len(df)}")
-                else:
-                    st.caption("No records yet.")
-            except Exception as e:
-                st.error(f"DB error: {e}")
-
-        with sub2:
-            try:
-                active_list = db.get_active_sessions()
-                if active_list:
-                    st.dataframe(pd.DataFrame(active_list), width="stretch")
-                else:
-                    st.caption("No vehicles currently parked.")
-            except Exception as e:
-                st.error(f"DB error: {e}")
-
-        with sub3:
-            search_plate = st.text_input("Enter Number Plate", placeholder="MH12AB1234")
-            if st.button("Search") and search_plate:
-                try:
-                    results = db.search_vehicle(search_plate)
-                    if results:
-                        st.dataframe(pd.DataFrame(results), width="stretch")
-                    else:
-                        st.caption("No records found for this vehicle.")
-                except Exception as e:
-                    st.error(f"DB error: {e}")
-
-    with tab_reference:
-        if os.path.exists("parking_map.png"):
-            st.image("parking_map.png", width="stretch")
-        else:
-            st.caption("No site map on file.")
-        st.markdown("---")
-        st.caption(
-            f"Database: {'Connected' if st.session_state.db_ok else 'Unavailable - ' + str(st.session_state.db_info)}"
+    for r in filtered[:100]:
+        entry = r["entry_time"].strftime("%Y-%m-%d %H:%M:%S") if r.get("entry_time") else "—"
+        exit_ = r["exit_time"].strftime("%Y-%m-%d %H:%M:%S") if r.get("exit_time") else "—"
+        dur = components.format_duration(r["duration_seconds"]) if r.get("duration_seconds") else "—"
+        rate_badge = ('<span class="pk-badge rush">Rush Hour</span>' if r.get("is_rush_hour")
+                      else '<span class="pk-badge standard">Standard</span>')
+        fare = f"₹{float(r['total_fare']):.2f}" if r.get("total_fare") is not None else "—"
+        status = r.get("session_status", "")
+        status_badge = (f'<span class="pk-badge active">{status}</span>' if status == "ACTIVE"
+                        else f'<span class="pk-badge completed">{status}</span>')
+        rows_html.append(
+            f"<tr><td class='mono'>#{r['session_id']}</td>"
+            f"<td class='plate'>{components.plate_pretty(r.get('number_plate',''))}</td>"
+            f"<td class='mono'>{r.get('slot_number','')}</td>"
+            f"<td class='mono'>{entry}</td><td class='mono'>{exit_}</td>"
+            f"<td class='mono'>{dur}</td><td>{rate_badge}</td>"
+            f"<td class='mono'>{fare}</td><td>{status_badge}</td></tr>"
         )
+    rows_html.append("</tbody></table>")
+
+    if not filtered:
+        components.info_card("No matching sessions", "Try a different filter or search term.", "search_off")
+    else:
+        components._md("".join(rows_html))
