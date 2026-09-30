@@ -1,2 +1,8 @@
-parking_data.csv
+﻿parking_data.csv
 ./parking_data.csv
+.env
+*.env
+__pycache__/
+*.pyc
+database/seed_runner.py
+database/init_db.py
