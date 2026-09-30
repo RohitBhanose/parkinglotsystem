@@ -1,32 +1,41 @@
 """
-ui/styles.py - Visual design system for the parking terminal.
+ui/styles.py - Visual design system for the parking terminal (dark theme).
 
 Presentation only. No business logic, OCR, or database calls live here -
 this module's only job is to make the existing app look and feel like a
 production terminal instead of a Streamlit dashboard.
+
+Every text-bearing rule below sets its own `color` explicitly. Streamlit
+auto-applies a light or dark theme based on the browser/OS preference, and
+an element with no explicit color inherits that theme's text color - on a
+system in dark mode, that's near-white text, which is invisible on top of
+a light card. Explicit colors everywhere means the page looks the same
+regardless of what the visitor's browser prefers.
 """
 
 import streamlit as st
 
 COLORS = {
-    "bg":             "#F7F7F5",
-    "surface":        "#FFFFFF",
-    "border":         "#E6E4DF",
-    "text":           "#111111",
-    "muted":          "#6B6B6B",
-    "faint":          "#9A9A94",
-    "accent":         "#2563EB",
-    "accent_dark":    "#1D4ED8",
-    "accent_soft":    "#EEF3FF",
-    "success":        "#16A34A",
-    "success_soft":   "#ECFDF5",
-    "success_border": "#BBF7D0",
-    "warning":        "#B45309",
-    "warning_soft":   "#FFFBEB",
-    "warning_border": "#FDE68A",
-    "error":          "#DC2626",
-    "error_soft":     "#FEF2F2",
-    "error_border":   "#FECACA",
+    "bg":             "#0A0A0B",
+    "surface":        "#17171A",
+    "surface_raised": "#1D1D20",
+    "border":         "#2A2A2E",
+    "border_soft":    "#232326",
+    "text":           "#F2F2F3",
+    "muted":          "#9B9BA1",
+    "faint":          "#6E6E74",
+    "accent":         "#3B82F6",
+    "accent_hover":   "#60A5FA",
+    "accent_soft":    "rgba(59,130,246,0.14)",
+    "success":        "#22C55E",
+    "success_soft":   "rgba(34,197,94,0.14)",
+    "success_border": "rgba(34,197,94,0.4)",
+    "warning":        "#F59E0B",
+    "warning_soft":   "rgba(245,158,11,0.14)",
+    "warning_border": "rgba(245,158,11,0.4)",
+    "error":          "#F87171",
+    "error_soft":     "rgba(248,113,113,0.14)",
+    "error_border":   "rgba(248,113,113,0.4)",
 }
 
 
@@ -49,7 +58,9 @@ def inject():
         display: none !important;
     }}
 
-    .stApp {{ background: {c['bg']}; }}
+    html, body {{ background: {c['bg']} !important; }}
+    .stApp {{ background: {c['bg']} !important; color: {c['text']}; }}
+    .stApp, .stApp p, .stApp span, .stApp div, .stApp label {{ color: {c['text']}; }}
     .block-container {{
         max-width: 1080px;
         padding-top: 1.75rem;
@@ -62,7 +73,7 @@ def inject():
         font-weight: 800;
         font-size: 1.05rem;
         letter-spacing: 0.14em;
-        color: {c['text']};
+        color: {c['text']} !important;
         padding-top: 0.5rem;
     }}
     .st-key-nav_bar .stButton > button {{
@@ -75,13 +86,10 @@ def inject():
         padding: 0.5rem 0.3rem !important;
     }}
     .st-key-nav_bar .stButton > button:hover {{
-        color: {c['accent']} !important;
+        color: {c['accent_hover']} !important;
         transform: none !important;
     }}
-    .pk-nav-active .stButton > button {{
-        color: {c['text']} !important;
-        font-weight: 700 !important;
-    }}
+    .st-key-nav_bar .stButton > button p {{ color: inherit !important; }}
 
     /* ---------- buttons ---------- */
     .stButton > button {{
@@ -94,11 +102,12 @@ def inject():
     button[data-testid="stBaseButton-primary"] {{
         background: {c['accent']} !important;
         border: 1px solid {c['accent']} !important;
-        color: #fff !important;
+        color: #ffffff !important;
     }}
+    button[data-testid="stBaseButton-primary"] p {{ color: #ffffff !important; }}
     button[data-testid="stBaseButton-primary"]:hover {{
-        background: {c['accent_dark']} !important;
-        border-color: {c['accent_dark']} !important;
+        background: {c['accent_hover']} !important;
+        border-color: {c['accent_hover']} !important;
         transform: translateY(-1px);
     }}
     button[data-testid="stBaseButton-secondary"] {{
@@ -106,27 +115,32 @@ def inject():
         border: 1px solid {c['border']} !important;
         color: {c['text']} !important;
     }}
+    button[data-testid="stBaseButton-secondary"] p {{ color: {c['text']} !important; }}
     button[data-testid="stBaseButton-secondary"]:hover {{
         border-color: {c['accent']} !important;
-        color: {c['accent']} !important;
+        color: {c['accent_hover']} !important;
         transform: translateY(-1px);
     }}
+    button[data-testid="stBaseButton-secondary"]:hover p {{ color: {c['accent_hover']} !important; }}
 
     /* ---------- text input ---------- */
     .stTextInput input {{
+        background: {c['surface_raised']} !important;
         border-radius: 12px !important;
         border: 1px solid {c['border']} !important;
+        color: {c['text']} !important;
         padding: 0.7rem 1rem !important;
         font-size: 1.1rem !important;
         text-align: center;
         letter-spacing: 0.05em;
         font-weight: 600;
     }}
+    .stTextInput input::placeholder {{ color: {c['faint']} !important; opacity: 1; }}
     .stTextInput input:focus {{
         border-color: {c['accent']} !important;
         box-shadow: 0 0 0 3px {c['accent_soft']} !important;
     }}
-    .stTextInput label {{
+    .stTextInput label, .stTextInput label p {{
         color: {c['muted']} !important;
         font-size: 0.85rem !important;
         justify-content: center !important;
@@ -140,6 +154,7 @@ def inject():
         border-radius: 20px;
         padding: 2.25rem 2rem;
         text-align: center;
+        color: {c['text']};
         animation: pkFadeUp 0.45s ease both;
     }}
     .pk-card-narrow {{ max-width: 440px; margin: 0 auto 1rem auto; }}
@@ -149,7 +164,7 @@ def inject():
         font-weight: 600;
         letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: {c['muted']};
+        color: {c['muted']} !important;
         margin-bottom: 0.5rem;
     }}
     .pk-title {{
@@ -157,9 +172,10 @@ def inject():
         font-weight: 700;
         margin: 0 0 0.35rem 0;
         line-height: 1.25;
+        color: {c['text']} !important;
     }}
     .pk-subtitle {{
-        color: {c['muted']};
+        color: {c['muted']} !important;
         font-size: 1rem;
         margin-bottom: 0;
     }}
@@ -169,25 +185,27 @@ def inject():
         letter-spacing: 0.07em;
         margin: 0.8rem 0;
         font-variant-numeric: tabular-nums;
+        color: {c['text']} !important;
     }}
     .pk-line {{
         display: flex;
         justify-content: space-between;
         padding: 0.55rem 0;
-        border-bottom: 1px solid {c['border']};
+        border-bottom: 1px solid {c['border_soft']};
         font-size: 0.95rem;
         text-align: left;
+        color: {c['text']};
     }}
     .pk-line:last-of-type {{ border-bottom: none; }}
-    .pk-line .label {{ color: {c['muted']}; }}
-    .pk-line .value {{ font-weight: 600; }}
+    .pk-line .label {{ color: {c['muted']} !important; }}
+    .pk-line .value {{ font-weight: 600; color: {c['text']} !important; }}
     .pk-total {{
         display: flex; justify-content: space-between; align-items: baseline;
         margin-top: 1rem; padding-top: 1.1rem;
         border-top: 1px solid {c['border']};
     }}
-    .pk-total .label {{ font-size: 1rem; color: {c['muted']}; font-weight: 600; }}
-    .pk-total .value {{ font-size: 2rem; font-weight: 800; color: {c['accent']}; }}
+    .pk-total .label {{ font-size: 1rem; color: {c['muted']} !important; font-weight: 600; }}
+    .pk-total .value {{ font-size: 2rem; font-weight: 800; color: {c['accent_hover']} !important; }}
 
     .pk-badge {{
         display: inline-block;
@@ -197,16 +215,16 @@ def inject():
         font-weight: 600;
         margin-bottom: 0.75rem;
     }}
-    .pk-badge.success {{ background:{c['success_soft']}; color:{c['success']}; border:1px solid {c['success_border']}; }}
-    .pk-badge.warning {{ background:{c['warning_soft']}; color:{c['warning']}; border:1px solid {c['warning_border']}; }}
-    .pk-badge.error   {{ background:{c['error_soft']};   color:{c['error']};   border:1px solid {c['error_border']}; }}
+    .pk-badge.success {{ background:{c['success_soft']}; color:{c['success']} !important; border:1px solid {c['success_border']}; }}
+    .pk-badge.warning {{ background:{c['warning_soft']}; color:{c['warning']} !important; border:1px solid {c['warning_border']}; }}
+    .pk-badge.error   {{ background:{c['error_soft']};   color:{c['error']} !important;   border:1px solid {c['error_border']}; }}
 
     /* ---------- camera stage ---------- */
     .st-key-camera_stage {{
         position: relative;
         border-radius: 24px;
         overflow: hidden;
-        background: #0b0b0c;
+        background: #000000;
         border: 1px solid {c['border']};
         aspect-ratio: 4 / 3;
         margin: 0 auto 1.25rem auto;
@@ -250,7 +268,7 @@ def inject():
         position: absolute; left: 8%; right: 8%; top: 30%;
         height: 2px;
         background: linear-gradient(90deg, transparent, {c['accent']} 20%, #93c5fd 50%, {c['accent']} 80%, transparent);
-        box-shadow: 0 0 8px 1px rgba(37,99,235,0.7);
+        box-shadow: 0 0 8px 1px rgba(59,130,246,0.7);
         animation: pkScan 2.4s ease-in-out infinite;
         z-index: 4;
     }}
@@ -258,7 +276,7 @@ def inject():
     .pk-hint {{
         position: absolute; left:0; right:0; bottom: 14px;
         text-align: center; z-index: 5;
-        color: rgba(255,255,255,0.95);
+        color: rgba(255,255,255,0.95) !important;
         font-size: 0.85rem; font-weight: 500;
         text-shadow: 0 1px 4px rgba(0,0,0,0.6);
     }}
@@ -286,31 +304,39 @@ def inject():
     /* ---------- availability ---------- */
     .pk-availnum {{
         font-size: 3.2rem; font-weight: 800; line-height: 1;
-        color: {c['text']};
+        color: {c['text']} !important;
     }}
     .pk-slotgrid {{
         display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
         margin-top: 0.4rem;
     }}
     .pk-slot {{ width: 15px; height: 15px; border-radius: 50%; }}
-    .pk-slot.open     {{ background: {c['surface']}; border: 1.5px solid #C9C7C1; }}
+    .pk-slot.open     {{ background: transparent; border: 1.5px solid {c['border']}; }}
     .pk-slot.occupied {{ background: {c['text']}; }}
     .pk-zone-label {{
-        color: {c['muted']}; font-size: 0.8rem; font-weight: 600;
+        color: {c['muted']} !important; font-size: 0.8rem; font-weight: 600;
         letter-spacing: 0.08em; margin: 1rem 0 0.35rem 0; text-transform: uppercase;
     }}
 
     /* ---------- tabs (Operator page) ---------- */
     button[data-baseweb="tab"] {{
         color: {c['muted']} !important;
-        font-weight: 500 !important;
     }}
+    button[data-baseweb="tab"] p {{ color: inherit !important; font-weight: 500 !important; }}
     button[data-baseweb="tab"][aria-selected="true"] {{
         color: {c['text']} !important;
-        font-weight: 700 !important;
     }}
+    button[data-baseweb="tab"][aria-selected="true"] p {{ font-weight: 700 !important; }}
     div[data-baseweb="tab-highlight"] {{
         background-color: {c['accent']} !important;
+    }}
+    div[data-baseweb="tab-border"] {{ background-color: {c['border']} !important; }}
+
+    /* ---------- dataframes / tables (Operator page) ---------- */
+    [data-testid="stDataFrame"] {{
+        border: 1px solid {c['border']};
+        border-radius: 12px;
+        overflow: hidden;
     }}
 
     /* ---------- misc ---------- */
@@ -321,8 +347,10 @@ def inject():
         border-radius: 16px;
         padding: 0.9rem 1rem;
     }}
+    [data-testid="stMetric"] label, [data-testid="stMetricLabel"] {{ color: {c['muted']} !important; }}
+    [data-testid="stMetricValue"] {{ color: {c['text']} !important; }}
     .pk-footnote {{
-        text-align:center; color:{c['faint']}; font-size:0.8rem; margin-top:0.75rem;
+        text-align:center; color:{c['faint']} !important; font-size:0.8rem; margin-top:0.75rem;
     }}
 
     @keyframes pkFadeUp {{

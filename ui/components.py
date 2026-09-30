@@ -9,6 +9,8 @@ database - that logic stays in streamlit_app.py exactly as it worked before.
 import re
 import streamlit as st
 
+from ui.styles import COLORS
+
 
 def _md(html: str):
     """
@@ -208,7 +210,7 @@ def manual_entry_block(prefill: str = ""):
     right before invoking this (kept out of here so it stays a pure render).
     """
     _md(
-        "<div style='text-align:center; color:#6B6B6B; font-size:0.9rem; "
+        f"<div style='text-align:center; color:{COLORS['muted']}; font-size:0.9rem; "
         "margin-bottom:0.5rem;'>Can't scan your plate? Enter it manually</div>"
     )
     value = st.text_input(

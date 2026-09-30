@@ -1,0 +1,11 @@
+# Dark theme for the parking terminal. Keeps Streamlit's own native widgets
+# (dataframes, tabs, checkboxes, focus rings) consistent with the dark
+# palette in ui/styles.py instead of fighting the browser/OS light-vs-dark
+# auto-detection with CSS alone.
+[theme]
+base = "dark"
+primaryColor = "#3B82F6"
+backgroundColor = "#0A0A0B"
+secondaryBackgroundColor = "#17171A"
+textColor = "#F2F2F3"
+font = "sans serif"
