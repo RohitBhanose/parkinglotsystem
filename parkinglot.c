@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
     int peak_minutes = 0;
 
     // 🔥 LOOP THROUGH EACH "MINUTE"
-    for (long t = entry; t < exit; t++)
+    for (time_t t = entry; t < exit; t++)
     {
         struct tm *tm_info = localtime(&t);
 
