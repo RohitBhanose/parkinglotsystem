@@ -10,8 +10,13 @@ from ultralytics import YOLO
 import easyocr
 import re
 import os
+import time
 import pandas as pd
 from datetime import datetime
+
+# Plate text assembly / validation (post-processing only - the YOLO model
+# and the EasyOCR reader are untouched, so recognition accuracy is unchanged)
+import plate_ocr
 
 # MySQL integration
 import db
@@ -21,6 +26,10 @@ st.set_page_config(page_title="Smart Parking", layout="wide")
 # ── Session state ────────────────────────────────────────────────
 if "detected_plate" not in st.session_state:
     st.session_state.detected_plate = ""
+if "pending_plate" not in st.session_state:      # read, but not yet confirmed
+    st.session_state.pending_plate = ""
+if "last_processed" not in st.session_state:     # (plate, unix_ts) de-dupe guard
+    st.session_state.last_processed = ("", 0.0)
 if "page" not in st.session_state:
     st.session_state.page = "Scan"
 if "db_ok" not in st.session_state:
@@ -67,10 +76,10 @@ def load_models():
 
 model, reader = load_models()
 
-patterns = [
-    r"[A-Z]{2}[0-9]{2}[A-Z]{1,2}[0-9]{4}",
-    r"[0-9]{2}BH[0-9]{4}[A-Z]{1,2}"
-]
+# Plate layouts and character repair live in plate_ocr.py.
+OCR_MIN_CONF = 0.15    # ignore EasyOCR reads below this confidence
+REPROCESS_COOLDOWN = 25  # seconds; a re-read of the same plate is ignored so a
+                         # fresh entry is not instantly turned into an exit
 
 # ════════════════════════════════════════════════════════════════
 # PAGE: SCAN
@@ -117,23 +126,27 @@ if st.session_state.page == "Scan":
         for _ in range(15):
             cap.read()
 
-        # Accumulate votes: plate_text -> count
-        # Accept after 2 matching reads (robust, but not so strict it never triggers)
-        plate_votes = {}
+        # Votes are tallied per FRAME, not per OCR read: a plate must be seen
+        # in VOTE_THRESHOLD separate frames before it is accepted. Reading the
+        # raw crop and the enhanced crop therefore cannot lock a plate on their
+        # own, which stops one bad frame from being registered.
+        plate_votes = {}            # plate -> {"votes", "score", "source"}
         VOTE_THRESHOLD = 2
-        MAX_FRAMES = 400   # ~40 seconds at ~10 fps
+        SCAN_SECONDS = 45           # wall-clock budget; OCR speed varies a lot
+        scan_started = time.time()
+        frame_num = 0
+        last_reads = []
 
-        for frame_num in range(MAX_FRAMES):
-            if stop:
-                break
-
+        while time.time() - scan_started < SCAN_SECONDS:
             ret, frame = cap.read()
             if not ret:
                 status_placeholder.warning("Camera read failed.")
                 break
 
+            frame_num += 1
             display_frame = frame.copy()
-            ocr_status_texts = []   # human-readable OCR reads this frame
+            frame_candidates = {}   # plate -> best candidate seen this frame
+            last_reads = []
 
             results = model(frame, conf=0.20, verbose=False)
             yolo_detected = False
@@ -164,72 +177,79 @@ if st.session_state.page == "Scan":
                         continue
 
                     # Run OCR on BOTH raw crop and preprocessed crop
-                    candidates = [plate_crop]
+                    ocr_inputs = [plate_crop]
                     proc = preprocess_plate(plate_crop)
                     if proc is not None:
-                        candidates.append(proc)
+                        ocr_inputs.append(proc)
 
-                    for img_candidate in candidates:
+                    for img_candidate in ocr_inputs:
                         ocr_out = reader.readtext(img_candidate, detail=1, paragraph=False)
 
+                        # Keep raw reads visible so the status bar can show them
                         for t in ocr_out:
-                            txt  = t[1] if len(t) > 1 else ""
-                            oconf = t[2] if len(t) > 2 else 0.0
+                            if len(t) > 2 and float(t[2]) >= OCR_MIN_CONF:
+                                last_reads.append(
+                                    f'"{plate_ocr.clean(t[1])}"({float(t[2]):.2f})'
+                                )
 
-                            # Accept any read with confidence >= 0.1 (very permissive)
-                            if oconf < 0.1:
-                                continue
+                        # Assemble the text boxes into plate candidates. This is
+                        # what recovers two-line plates ("MH12" + "AB1234") and
+                        # look-alike characters (I/1, O/0, B/8) that a per-box
+                        # regex could never match.
+                        for cand in plate_ocr.extract_plates(ocr_out, min_conf=OCR_MIN_CONF):
+                            prev = frame_candidates.get(cand["plate"])
+                            if prev is None or cand["score"] > prev["score"]:
+                                frame_candidates[cand["plate"]] = cand
 
-                            raw = re.sub(r'[^A-Z0-9]', '', txt.upper())
-                            ocr_status_texts.append(f'"{raw}"({oconf:.2f})')
+            # One vote per plate per frame
+            for plate_text, cand in frame_candidates.items():
+                slot = plate_votes.setdefault(
+                    plate_text, {"votes": 0, "score": 0.0, "source": ""}
+                )
+                slot["votes"] += 1
+                slot["score"] = max(slot["score"], cand["score"])
+                slot["source"] = cand["source"]
 
-                            for p in patterns:
-                                for m in re.findall(p, raw):
-                                    plate_votes[m] = plate_votes.get(m, 0) + 1
-                                    if plate_votes[m] >= VOTE_THRESHOLD:
-                                        # Lock the plate, stop camera, done
-                                        st.session_state.detected_plate = m
-                                        cap.release()
-                                        # Show final frozen frame with box
-                                        frame_placeholder.image(
-                                            cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
-                                        )
-                                        status_placeholder.success(
-                                            f"✅ Plate confirmed: **{m}**"
-                                        )
-                                        break
-                            if st.session_state.detected_plate:
-                                break
-                        if st.session_state.detected_plate:
-                            break
-                    if st.session_state.detected_plate:
-                        break
-                if st.session_state.detected_plate:
-                    break
+            # Best candidate so far: most frames, then best score
+            best_plate = max(
+                plate_votes.items(),
+                key=lambda kv: (kv[1]["votes"], kv[1]["score"]),
+                default=None
+            )
 
-            if st.session_state.detected_plate:
+            if best_plate and best_plate[1]["votes"] >= VOTE_THRESHOLD:
+                st.session_state.detected_plate = best_plate[0]
+                frame_placeholder.image(cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB))
+                status_placeholder.success(
+                    f"✅ Plate confirmed: **{best_plate[0]}** "
+                    f"({best_plate[1]['votes']} frames, read as '{best_plate[1]['source']}')"
+                )
                 break
 
             # Update live feed every frame
             frame_placeholder.image(cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB))
 
-            # Status bar — show what OCR is actually reading so user can debug
-            if yolo_detected and ocr_status_texts:
+            # Status bar - show what OCR is actually reading so user can debug
+            if plate_votes:
                 pending = ", ".join(
-                    f"{k}({v}/{VOTE_THRESHOLD})" for k, v in plate_votes.items()
+                    f"{k}({v['votes']}/{VOTE_THRESHOLD})" for k, v in plate_votes.items()
                 )
                 status_placeholder.info(
-                    f"🔍 YOLO✅ OCR reads: {' | '.join(ocr_status_texts[-3:])}  "
-                    f"{'  Votes: ' + pending if plate_votes else ''}"
+                    f"🔍 Matching: {pending}  |  OCR: {' | '.join(last_reads[-3:])}"
+                )
+            elif yolo_detected and last_reads:
+                status_placeholder.info(
+                    f"🔍 YOLO✅ OCR reads: {' | '.join(last_reads[-3:])} "
+                    "- no valid plate yet"
                 )
             elif yolo_detected:
                 status_placeholder.warning(
-                    f"🟡 Plate box found — OCR couldn't read text (frame {frame_num + 1}). "
+                    f"🟡 Plate box found - OCR couldn't read text (frame {frame_num}). "
                     "Move plate closer / improve lighting."
                 )
             else:
                 status_placeholder.caption(
-                    f"📷 Scanning frame {frame_num + 1} — point plate at camera"
+                    f"📷 Scanning frame {frame_num} - point plate at camera"
                 )
 
         # Always release camera after loop ends
@@ -238,18 +258,52 @@ if st.session_state.page == "Scan":
         except Exception:
             pass
 
+        # Never throw away a near miss: a plate seen in only one frame is
+        # offered for confirmation instead of being silently dropped.
         if not st.session_state.detected_plate:
-            status_placeholder.warning("⚠️ No plate detected. Try better lighting, hold the plate steady, or enter manually below.")
+            near_miss = max(
+                plate_votes.items(),
+                key=lambda kv: (kv[1]["votes"], kv[1]["score"]),
+                default=None
+            )
+            if near_miss:
+                st.session_state.pending_plate = near_miss[0]
+                status_placeholder.warning(
+                    f"⚠️ Read **{near_miss[0]}** in only {near_miss[1]['votes']} "
+                    "frame(s) - check it on the right, then press **Process Plate**."
+                )
+            else:
+                status_placeholder.warning(
+                    "⚠️ No plate detected. Try better lighting, hold the plate "
+                    "steady, or enter it manually."
+                )
 
-    # Manual plate input (for testing without camera)
+    # Manual plate input - also used to confirm a low-confidence scan
     with col_info:
         st.markdown("**Or enter plate manually:**")
-        manual_plate = st.text_input("Number Plate", value=st.session_state.detected_plate,
-                                     placeholder="MH12AB1234", key="manual_input")
+        # Prefill from the scan. Assigning to the widget key must happen BEFORE
+        # the widget is created, or Streamlit ignores the new value.
+        prefill = st.session_state.detected_plate or st.session_state.pending_plate
+        if prefill and st.session_state.get("manual_input", "") != prefill:
+            st.session_state.manual_input = prefill
+        manual_plate = st.text_input("Number Plate", placeholder="MH12AB1234",
+                                     key="manual_input")
         if st.button("Process Plate"):
             st.session_state.detected_plate = manual_plate.upper().strip()
+            st.session_state.pending_plate = ""
 
     plate = st.session_state.detected_plate
+
+    last_plate, last_ts = st.session_state.last_processed
+    if plate and plate == last_plate and time.time() - last_ts < REPROCESS_COOLDOWN:
+        with col_info:
+            st.info(
+                f"ℹ️ **{plate}** was just processed "
+                f"{int(time.time() - last_ts)}s ago - ignoring the repeat read. "
+                "Scan again in a moment to record the exit."
+            )
+        plate = ""
+        st.session_state.detected_plate = ""
 
     if plate:
         with col_info:
@@ -259,6 +313,7 @@ if st.session_state.page == "Scan":
             if not st.session_state.db_ok:
                 st.error("Database not connected. Cannot process.")
             else:
+                st.session_state.last_processed = (plate, time.time())
                 # Check if vehicle has an active session
                 active = db.get_active_session(plate)
 
@@ -361,6 +416,7 @@ if st.session_state.page == "Scan":
                             st.image("payment_qr.png", width=200)
 
         st.session_state.detected_plate = ""
+        st.session_state.pending_plate = ""
 
 # ════════════════════════════════════════════════════════════════
 # PAGE: RECORDS

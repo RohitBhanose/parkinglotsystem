@@ -68,6 +68,22 @@ def get_all_slots():
     return rows
 
 # ── Vehicle entry (uses stored procedure via callproc) ───────────
+def _as_int(value):
+    """
+    OUT params come back as int, str or bytes depending on the connector
+    version; comparing a str against 0 raises TypeError and would surface as
+    a failed registration even though the row was written.
+    """
+    if value is None:
+        return 0
+    if isinstance(value, bytes):
+        value = value.decode("utf-8", "ignore")
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
 def register_vehicle_entry(number_plate: str, vehicle_type: str = "CAR"):
     """
     Calls RegisterVehicleEntry stored procedure.
@@ -78,11 +94,12 @@ def register_vehicle_entry(number_plate: str, vehicle_type: str = "CAR"):
     args = (number_plate.upper().strip(), vehicle_type, 0, "", "")
     result = cursor.callproc("RegisterVehicleEntry", args)
     cursor.close(); conn.close()
+    session_id = _as_int(result[2])
     return {
-        "session_id":  result[2],
+        "session_id":  session_id,
         "slot_number": result[3],
         "message":     result[4],
-        "success":     (result[2] is not None and result[2] > 0)
+        "success":     session_id > 0
     }
 
 # ── C fare calculator bridge ─────────────────────────────────────
@@ -135,10 +152,11 @@ def process_vehicle_exit(number_plate: str, fare_data: dict, payment_method: str
     )
     result = cursor.callproc("ProcessVehicleExit", args)
     cursor.close(); conn.close()
+    session_id = _as_int(result[8])
     return {
-        "session_id": result[8],
+        "session_id": session_id,
         "message":    result[9],
-        "success":    (result[8] is not None and result[8] > 0)
+        "success":    session_id > 0
     }
 
 # ── Active session lookup ────────────────────────────────────────
