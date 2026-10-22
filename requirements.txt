@@ -1,0 +1,9 @@
+# Python dependencies for the Streamlit frontend and YOLO/OCR pipeline.
+# (The C++ core has no Python dependencies; see README for its build tools.)
+streamlit
+ultralytics
+easyocr
+opencv-python
+python-dotenv
+# Only needed for PARKING_BACKEND=mysql
+mysql-connector-python

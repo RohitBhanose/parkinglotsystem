@@ -2,13 +2,17 @@
 streamlit_app.py - Smart Parking Management System (PARK-DBMS console)
 
 UI matches the Material-3 dark/amber reference design supplied by the user
-(Google Stitch export). Every value shown comes from a real db.py call, the
-real OCR/YOLO pipeline, or the real C fare calculator - no fabricated
+(Google Stitch export). Every value shown comes from a real storage-backend call, the
+real OCR/YOLO pipeline, or the real C++ parking core - no fabricated
 hardware telemetry, camera names, sensor IDs, or driver/permittee tracking,
 since none of that exists in this project's schema or backend.
 
-Pipeline (unchanged): camera -> YOLO plate detection -> EasyOCR ->
-plate_ocr.py (assembly/voting) -> MySQL (db.py) -> C fare calculator.
+Pipeline: camera -> YOLO plate detection -> EasyOCR -> plate_ocr.py
+(assembly/voting) -> storage backend -> C++ core (parkinglot.exe).
+
+Storage backend (PARKING_BACKEND in .env):
+  mysql (default) - db.py: MySQL stored procedures + C++ fare engine
+  csv             - csv_store.py: C++ core owns slots, sessions and parking_data.csv
 """
 
 import streamlit as st
@@ -23,11 +27,20 @@ from datetime import datetime
 # and the EasyOCR reader are untouched, so recognition accuracy is unchanged)
 import plate_ocr
 
-# MySQL integration
+# Storage backends (both expose the same functions) and the C++ core bridge
 import db
+import csv_store
+import parking_core
 
 # Presentation layer
 from ui import styles, components
+
+BASE_DIR = parking_core.BASE_DIR
+MODEL_PATH = os.getenv("YOLO_MODEL_PATH", str(BASE_DIR / "best.pt"))
+PAYMENT_QR_PATH = BASE_DIR / "payment_qr.png"
+
+BACKEND = os.getenv("PARKING_BACKEND", "mysql").strip().lower()   # db.py has loaded .env
+store = csv_store if BACKEND == "csv" else db
 
 st.set_page_config(page_title="PARK-DBMS", layout="wide", initial_sidebar_state="collapsed")
 styles.inject()
@@ -44,14 +57,14 @@ if "page" not in st.session_state:
 if "selected_slot" not in st.session_state:
     st.session_state.selected_slot = None
 if "db_ok" not in st.session_state:
-    ok, info = db.test_connection()
+    ok, info = store.test_connection()
     st.session_state.db_ok   = ok
     st.session_state.db_info = info
 
 # ── Models ───────────────────────────────────────────────────────
 @st.cache_resource
 def load_models():
-    return YOLO("best.pt"), easyocr.Reader(['en'])
+    return YOLO(MODEL_PATH), easyocr.Reader(['en'])
 
 model, reader = load_models()
 
@@ -65,11 +78,24 @@ SCAN_SECONDS = 45        # wall-clock scan budget; OCR speed varies a lot
 REPROCESS_COOLDOWN = 25  # seconds; a re-read of the same plate is ignored so a
                          # fresh entry is not instantly turned into an exit
 
-# Real, currently-enforced fare rule (parkinglot.c): weekends, or 18:00-22:00
-# on weekdays, bill at the peak rate instead of the base rate.
-BASE_RATE_PER_MIN = 0.67
-PEAK_RATE_PER_MIN = 0.80
-PEAK_WINDOW_LABEL = "Weekends & 18:00–22:00"
+# Tariff shown in the UI comes from the C++ core (config/parking.cfg), the
+# same source that prices every exit: weekends, or 18:00-22:00 on any day,
+# bill at the peak rate instead of the base rate.
+try:
+    _rates = parking_core.get_rates()
+    CORE_OK, CORE_INFO = True, _rates["engine"]
+    BASE_RATE_PER_MIN = _rates["base_rate"]
+    PEAK_RATE_PER_MIN = _rates["peak_rate"]
+    PEAK_WINDOW_LABEL = parking_core.peak_window_label(_rates)
+except parking_core.ParkingCoreError as e:
+    CORE_OK, CORE_INFO = False, e.message
+    BASE_RATE_PER_MIN = PEAK_RATE_PER_MIN = None
+    PEAK_WINDOW_LABEL = "—"
+    st.error(f"Fare engine unavailable: {e.message}")
+
+
+def rate_text(rate) -> str:
+    return f"₹{rate:.2f}" if rate is not None else "—"
 
 
 def preprocess_plate(img):
@@ -179,8 +205,8 @@ def run_scan(frame_ph):
 if st.session_state.page == "Dashboard":
 
     try:
-        summary = db.get_slot_summary()
-        slots = db.get_all_slots()
+        summary = store.get_slot_summary()
+        slots = store.get_all_slots()
         total = int(summary.get("total") or 0)
         available = int(summary.get("available") or 0)
         occupied = int(summary.get("occupied") or 0)
@@ -204,8 +230,8 @@ if st.session_state.page == "Dashboard":
         with c3:
             components.stat_card("Available Bays", available, "Open Now", "Ready for instant check-in", "check_circle", accent=True)
         with c4:
-            components.stat_card("Base Tariff", f"₹{BASE_RATE_PER_MIN:.2f}", "/ min",
-                                 f"Peak ₹{PEAK_RATE_PER_MIN:.2f}/min • {PEAK_WINDOW_LABEL}", "schedule")
+            components.stat_card("Base Tariff", rate_text(BASE_RATE_PER_MIN), "/ min",
+                                 f"Peak {rate_text(PEAK_RATE_PER_MIN)}/min • {PEAK_WINDOW_LABEL}", "schedule")
 
         st.write("")
         components.utilization_bar(occupied, total)
@@ -214,7 +240,7 @@ if st.session_state.page == "Dashboard":
         col_feed, col_side = st.columns([2, 1])
         with col_feed:
             try:
-                records = db.get_parking_records(15)
+                records = store.get_parking_records(15)
                 records = sorted(records, key=lambda r: r.get("exit_time") or r.get("entry_time"), reverse=True)[:6]
             except Exception:
                 records = []
@@ -233,7 +259,8 @@ if st.session_state.page == "Dashboard":
                 st.session_state.page = "Records"; st.rerun()
 
             st.write("")
-            components.system_status_box(st.session_state.db_ok, st.session_state.db_info, model_ready=True)
+            components.system_status_box(st.session_state.db_ok, st.session_state.db_info, model_ready=True,
+                                         storage_label=store.BACKEND_LABEL, core_ok=CORE_OK)
 
     except Exception as e:
         st.error(f"Dashboard data unavailable: {e}")
@@ -298,12 +325,12 @@ elif st.session_state.page == "Parking":
             now = datetime.now()
 
             if not st.session_state.db_ok:
-                components.service_unavailable_card()
+                components.service_unavailable_card(store.BACKEND_LABEL)
             else:
                 st.session_state.last_processed = (plate, time.time())
 
                 try:
-                    active = db.get_active_session(plate)
+                    active = store.get_active_session(plate)
                 except Exception:
                     active = None
                     components.processing_failed_card()
@@ -311,13 +338,13 @@ elif st.session_state.page == "Parking":
                     # ── ENTRY ──────────────────────────────────
                     if active is None:
                         try:
-                            result = db.register_vehicle_entry(plate, "CAR")
+                            result = store.register_vehicle_entry(plate, "CAR")
                         except Exception:
                             result = {"success": False}
 
                         if result.get("success"):
                             slot_info = next(
-                                (s for s in db.get_all_slots() if s["slot_number"] == result["slot_number"]),
+                                (s for s in store.get_all_slots() if s["slot_number"] == result["slot_number"]),
                                 None,
                             )
                             zone = slot_info["zone"] if slot_info else "?"
@@ -325,12 +352,14 @@ elif st.session_state.page == "Parking":
                             components.slot_allocation_box(result["slot_number"], zone, floor)
                             components.kv_grid([
                                 ("Entry Timestamp", now.strftime("%H:%M:%S")),
-                                ("Tariff Rate Basis", f"₹{BASE_RATE_PER_MIN:.2f} / min base"),
+                                ("Tariff Rate Basis", f"{rate_text(BASE_RATE_PER_MIN)} / min base"),
                             ])
                             components.confirmation_box(
                                 "Slot Assigned",
                                 f"Vehicle registered. Proceed to slot {result['slot_number']}.",
                             )
+                        elif result.get("message"):
+                            components.info_card("Entry not recorded", result["message"], "error")
                         else:
                             components.processing_failed_card()
 
@@ -339,47 +368,47 @@ elif st.session_state.page == "Parking":
                         entry_time = active["entry_time"]
                         exit_time = now
 
+                        # The C++ core prices the stay. If it fails, the exit is
+                        # not recorded - no fare is guessed in Python.
                         try:
-                            fare = db.call_c_fare_calculator(entry_time.timestamp(), exit_time.timestamp())
-                        except Exception:
-                            dur_sec = max(60, int((exit_time - entry_time).total_seconds()))
-                            fare = {
-                                "status": "ACTIVE", "total_duration": dur_sec, "base_minutes": dur_sec,
-                                "base_rate": BASE_RATE_PER_MIN, "base_amount": round(dur_sec * BASE_RATE_PER_MIN, 2),
-                                "peak_minutes": 0, "peak_surcharge": PEAK_RATE_PER_MIN, "peak_amount": 0.0,
-                                "total_amount": round(dur_sec * BASE_RATE_PER_MIN, 2), "is_rush_hour": 0,
-                            }
-
-                        try:
-                            exit_result = db.process_vehicle_exit(plate, fare, "CASH")
+                            exit_result = store.checkout_vehicle(plate, active, exit_time, "CASH")
+                        except parking_core.ParkingCoreError as e:
+                            exit_result = {"success": False, "message": e.message}
                         except Exception:
                             exit_result = {"success": False}
 
-                        components.exit_summary_box(
-                            plate, active["slot_number"],
-                            entry_time.strftime("%H:%M:%S"), exit_time.strftime("%H:%M:%S"),
-                            components.format_duration(fare["total_duration"]),
-                        )
-                        components.fare_breakdown_box(
-                            fare["base_amount"], fare["peak_amount"],
-                            fare["base_minutes"], fare["peak_minutes"],
-                            fare["total_amount"], bool(fare["is_rush_hour"]),
-                        )
+                        fare = exit_result.get("fare")
+                        if fare:
+                            components.exit_summary_box(
+                                plate, active["slot_number"],
+                                entry_time.strftime("%H:%M:%S"), exit_time.strftime("%H:%M:%S"),
+                                components.format_duration(fare["total_duration"]),
+                            )
+                            components.fare_breakdown_box(
+                                fare["base_amount"], fare["peak_amount"],
+                                fare["base_minutes"], fare["peak_minutes"],
+                                fare["total_amount"], bool(fare["is_rush_hour"]),
+                                fare["base_rate"],
+                            )
 
                         if exit_result.get("success"):
                             components.confirmation_box(
-                                "Payment Verified • Slot Released",
+                                "Payment Recorded • Slot Released",
                                 f"Slot {active['slot_number']} is now available.", "done_all",
                             )
                         else:
-                            components.info_card("Exit not recorded", "Please show this screen to the attendant.", "error")
+                            components.info_card(
+                                "Exit not recorded",
+                                exit_result.get("message") or "Please show this screen to the attendant.",
+                                "error",
+                            )
 
-                        if os.path.exists("payment_qr.png"):
+                        if fare and PAYMENT_QR_PATH.exists():
                             st.write("")
                             _, qcol, _ = st.columns([1, 1, 1])
                             with qcol:
                                 st.caption("Scan to pay")
-                                st.image("payment_qr.png", width=160)
+                                st.image(str(PAYMENT_QR_PATH), width=160)
 
             st.session_state.detected_plate = ""
             st.session_state.pending_plate = ""
@@ -391,9 +420,9 @@ elif st.session_state.page == "Parking":
 elif st.session_state.page == "Map":
 
     try:
-        summary = db.get_slot_summary()
-        slots = db.get_all_slots()
-        active_sessions = db.get_active_sessions()
+        summary = store.get_slot_summary()
+        slots = store.get_all_slots()
+        active_sessions = store.get_active_sessions()
         active_by_slot = {a["slot_number"]: a for a in active_sessions}
 
         components._md("<div class='pk-eyebrow'>FACILITY SCHEMATIC</div>")
@@ -471,7 +500,7 @@ elif st.session_state.page == "Map":
                     entry_time = session["entry_time"]
                     elapsed = components.format_duration(int((datetime.now() - entry_time).total_seconds()))
                     try:
-                        live_fare = db.call_c_fare_calculator(entry_time.timestamp(), datetime.now().timestamp())
+                        live_fare = parking_core.calculate_fare(entry_time.timestamp(), datetime.now().timestamp())
                         fare_str = f"₹{live_fare['total_amount']:.2f}"
                     except Exception:
                         fare_str = "—"
@@ -495,7 +524,7 @@ elif st.session_state.page == "Map":
 elif st.session_state.page == "Records":
 
     try:
-        records = db.get_parking_records(200)
+        records = store.get_parking_records(200)
     except Exception as e:
         records = []
         st.error(f"Records unavailable: {e}")

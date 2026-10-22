@@ -1,8 +1,22 @@
-﻿parking_data.csv
-./parking_data.csv
+﻿# Parking records (runtime data) and the files the C++ core writes next to it
+parking_data.csv
+parking_data.csv.tmp
+parking_data.csv.legacy-backup
+
+# Secrets
 .env
 *.env
+
+# Python
 __pycache__/
 *.pyc
+
+# C++ build output
+build/
+*.exe
+*.o
+*.obj
+
+# Local-only database helpers
 database/seed_runner.py
 database/init_db.py

@@ -164,7 +164,7 @@ BEGIN
     IF EXISTS (SELECT 1 FROM parking_sessions WHERE vehicle_id=v_vehicle_id AND session_status='ACTIVE') THEN
         ROLLBACK; SET p_session_id=-2; SET p_slot_number=NULL; SET p_message='Vehicle already has an active session';
     ELSE
-        SELECT slot_id, slot_number INTO v_slot_id, v_slot_num FROM parking_slots WHERE status='AVAILABLE' ORDER BY slot_id LIMIT 1;
+        SELECT slot_id, slot_number INTO v_slot_id, v_slot_num FROM parking_slots WHERE status='AVAILABLE' ORDER BY slot_id LIMIT 1 FOR UPDATE;  -- lock the row: concurrent entries cannot pick the same slot
         IF v_slot_id IS NULL THEN
             ROLLBACK; SET p_session_id=-3; SET p_slot_number=NULL; SET p_message='No available parking slots';
         ELSE

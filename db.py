@@ -2,14 +2,20 @@
 db.py - MySQL database layer for Smart Parking Management System
 Handles all database operations using mysql-connector-python.
 Credentials loaded from .env via python-dotenv.
+
+Slot allocation and persistence run in the database's stored procedures;
+fares come from the C++ core (parking_core.py -> parkinglot.exe).
 """
 
 import os
-import subprocess
 from datetime import datetime
 from dotenv import load_dotenv
 
+import parking_core
+
 load_dotenv()
+
+BACKEND_LABEL = "MySQL"
 
 try:
     import mysql.connector
@@ -102,34 +108,14 @@ def register_vehicle_entry(number_plate: str, vehicle_type: str = "CAR"):
         "success":     session_id > 0
     }
 
-# ── C fare calculator bridge ─────────────────────────────────────
+# ── C++ fare calculator bridge ───────────────────────────────────
 def call_c_fare_calculator(entry_ts: float, exit_ts: float) -> dict:
     """
-    Calls parkinglot.exe with UNIX timestamps.
-    Returns structured fare breakdown dict.
+    Fare breakdown from the C++ core for two UNIX timestamps (same dict
+    shape as before). Raises parking_core.ParkingCoreError on failure
+    instead of silently returning a zero fare.
     """
-    exe_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "parkinglot.exe")
-    result = subprocess.run(
-        [exe_path, str(int(entry_ts)), str(int(exit_ts))],
-        capture_output=True, text=True, timeout=10
-    )
-    parsed = {}
-    for line in result.stdout.strip().splitlines():
-        if "=" in line:
-            key, val = line.split("=", 1)
-            parsed[key.strip()] = val.strip()
-    return {
-        "status":         parsed.get("STATUS", "UNKNOWN"),
-        "total_duration": int(parsed.get("TOTAL_DURATION", 1)),
-        "base_minutes":   int(parsed.get("BASE_MINUTES", 0)),
-        "base_rate":      float(parsed.get("BASE_RATE", 0.67)),
-        "base_amount":    float(parsed.get("BASE_AMOUNT", 0.0)),
-        "peak_minutes":   int(parsed.get("PEAK_MINUTES", 0)),
-        "peak_surcharge": float(parsed.get("PEAK_SURCHARGE", 0.80)),
-        "peak_amount":    float(parsed.get("PEAK_AMOUNT", 0.0)),
-        "total_amount":   float(parsed.get("TOTAL_AMOUNT", 0.0)),
-        "is_rush_hour":   1 if int(parsed.get("PEAK_MINUTES", 0)) > 0 else 0,
-    }
+    return parking_core.calculate_fare(entry_ts, exit_ts)
 
 # ── Vehicle exit (uses stored procedure via callproc) ────────────
 def process_vehicle_exit(number_plate: str, fare_data: dict, payment_method: str = "CASH"):
@@ -158,6 +144,17 @@ def process_vehicle_exit(number_plate: str, fare_data: dict, payment_method: str
         "message":    result[9],
         "success":    session_id > 0
     }
+
+def checkout_vehicle(number_plate: str, active: dict, exit_time: datetime, payment_method: str = "CASH"):
+    """
+    Exit in MySQL mode: fare from the C++ core, then ProcessVehicleExit.
+    Every vehicle is billed with the CAR tariff here, exactly as before.
+    Returns {session_id, message, success, fare}; fare errors raise ParkingCoreError.
+    """
+    fare = call_c_fare_calculator(active["entry_time"].timestamp(), exit_time.timestamp())
+    result = process_vehicle_exit(number_plate, fare, payment_method)
+    result["fare"] = fare
+    return result
 
 # ── Active session lookup ────────────────────────────────────────
 def get_active_session(number_plate: str):

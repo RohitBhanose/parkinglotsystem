@@ -5,7 +5,7 @@ ui/components.py - Reusable UI blocks matching the Material-3 dark/amber
 Presentation only: every function here renders markup from the plain values
 it is given. None of them touch the camera, YOLO, EasyOCR, plate_ocr, or the
 database - that logic stays in streamlit_app.py. Every value rendered here
-must come from a real db.py call or a real computed value - no placeholder
+must come from a real storage-backend call or a real computed value - no placeholder
 sensor counts, camera names, or hardware telemetry that this project doesn't
 actually have.
 """
@@ -188,21 +188,22 @@ def action_link(title: str, sub: str, ico: str):
     """)
 
 
-def system_status_box(db_ok: bool, db_info: str, model_ready: bool):
+def system_status_box(db_ok: bool, db_info: str, model_ready: bool,
+                      storage_label: str = "MySQL", core_ok: bool = True):
     _md(f"""
         <div class="pk-card" style="font-family:'Space Grotesk',sans-serif;">
             <div style="display:flex;justify-content:space-between;color:{COLORS['muted']};
                         font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
                         padding-bottom:0.5rem;border-bottom:1px solid {COLORS['surface_highest']};margin-bottom:0.5rem;">
                 <span>System Status</span>
-                <span style="color:{COLORS['accent']};">{'STABLE' if db_ok and model_ready else 'DEGRADED'}</span>
+                <span style="color:{COLORS['accent']};">{'STABLE' if db_ok and model_ready and core_ok else 'DEGRADED'}</span>
             </div>
-            <div class="pk-fareline"><span class="lbl">MySQL Connection:</span>
+            <div class="pk-fareline"><span class="lbl">{storage_label} Storage:</span>
                 <span>{'CONNECTED' if db_ok else 'UNAVAILABLE'}</span></div>
             <div class="pk-fareline"><span class="lbl">Plate Recognition (YOLO + OCR):</span>
                 <span>{'READY' if model_ready else 'LOADING'}</span></div>
-            <div class="pk-fareline"><span class="lbl">Fare Engine (parkinglot.exe):</span>
-                <span>READY</span></div>
+            <div class="pk-fareline"><span class="lbl">C++ Parking Core (parkinglot.exe):</span>
+                <span>{'READY' if core_ok else 'UNAVAILABLE'}</span></div>
         </div>
     """)
 
@@ -299,7 +300,7 @@ def exit_summary_box(plate: str, slot_number: str, entry_time_str: str, exit_tim
 
 
 def fare_breakdown_box(base_amount: float, peak_amount: float, base_minutes: int,
-                        peak_minutes: int, total_amount: float, is_rush: bool):
+                        peak_minutes: int, total_amount: float, is_rush: bool, base_rate: float = 0.67):
     peak_row = ""
     if peak_amount and peak_amount > 0:
         peak_row = (
@@ -309,7 +310,7 @@ def fare_breakdown_box(base_amount: float, peak_amount: float, base_minutes: int
     _md(f"""
         <div class="pk-card">
             <div class="pk-eyebrow">Tariff Computation</div>
-            <div class="pk-fareline"><span class="lbl">Base Parking ({base_minutes} min @ ₹0.67/min)</span><span>₹{base_amount:.2f}</span></div>
+            <div class="pk-fareline"><span class="lbl">Base Parking ({base_minutes} min @ ₹{base_rate:.2f}/min)</span><span>₹{base_amount:.2f}</span></div>
             {peak_row}
             <div class="pk-faretotal"><span class="lbl">Total Payable</span><span class="val">₹{total_amount:.2f}</span></div>
         </div>
@@ -334,9 +335,9 @@ def no_plate_card():
               "search_off")
 
 
-def service_unavailable_card():
-    info_card("Database unavailable",
-              "Entries can't be processed right now. Check the MySQL connection.",
+def service_unavailable_card(storage_label: str = "MySQL"):
+    info_card("Storage unavailable",
+              f"Entries can't be processed right now. Check the {storage_label} storage connection.",
               "cloud_off")
 
 
